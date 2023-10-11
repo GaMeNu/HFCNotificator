@@ -13,6 +13,17 @@ Invite the bot to a server, and /register a channel, and you're ready to go!
 Alternatively, you can DM the bot to receive alerts directly to your DMs!
 
 Please do note that the bot instance listed here is hosted on a private machine, and may be a bit slow.
+
+## Command documentation
+### /about
+Get some info about the bot
+### /register
+Run in a channel to register it to receive alerts
+### /unregister
+Run in a registered channel to stop it from receiving alerts
+### /latest \<time\> \<unit\> \[page\]
+Get the latest alerts from up to a certain time back.
+
 ## Self-hosting
 ### Requirements
 #### Required PyPI packages (run each with `pip install`)

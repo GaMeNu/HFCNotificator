@@ -42,8 +42,22 @@ class AlertReqs:
 
         content = req.text
 
+        print(req.text)
+
         return json.loads(content)
 
+
+class Alert:
+    def __init__(self, id: int, cat: int, title: str, districts: list[str], desc: str):
+        self.id = id
+        self.category = cat
+        self.title = title
+        self.districts = districts
+        self.description = desc
+
+    @staticmethod
+    def from_dict(data: dict):
+        return Alert(int(data.get('id', '0')), int(data.get('cat', '0')), data.get('title'), data.get('data'), data.get('desc'))
 
 class Notificator(commands.Cog):
     districts: list[dict] = json.loads(requests.get('https://www.oref.org.il//Shared/Ajax/GetDistricts.aspx').text)
@@ -100,12 +114,15 @@ class Notificator(commands.Cog):
         self.active_districts = data
 
     @staticmethod
-    def generate_alert_embed(alert_id: int, district: str, arrival_time: int, time: str, lang: str) -> discord.Embed:
+    def generate_alert_embed(alert_object: Alert, district: str, arrival_time: int, time: str, lang: str) -> discord.Embed:
         e = discord.Embed(color=discord.Color.from_str('#FF0000'))
         e.title = f'התראה ב{district}'
-        if alert_id == 1:
-            e.add_field(name=district, value='יריית רקטות וטילים', inline=False)
-            e.add_field(name='זמן מיגון', value=f'{arrival_time} שניות', inline=False)
+        match alert_object.category:
+            case 1:
+                e.add_field(name=district, value=alert_object.title, inline=False)
+                e.add_field(name='זמן מיגון', value=f'{arrival_time} שניות', inline=False)
+            case _:
+                e.add_field(name=district, value=alert_object.title)
         e.add_field(name='נכון ל', value=time, inline=False)
         return e
 
@@ -120,22 +137,34 @@ class Notificator(commands.Cog):
         view.add_item(button)
         return view
 
-    async def send_new_alert(self, alert_data: dict, districts: list[str]):
+    async def send_new_alert(self, alert_data: dict, new_districts: list[str]):
         alert_history = AlertReqs.request_history_json()[0:100]
 
         embed_ls: list[discord.Embed] = []
         embed_ls_ls: list[list[discord.Embed]] = []
 
-        for district in districts:
+        new_alert = Alert.from_dict(alert_data)
+
+        for district in new_districts:
             district_data = self.db.get_district_by_name(district)
-            alert_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            alert_time = datetime.datetime.now()  # .strftime()
             for alert in alert_history:
                 if alert["data"] == district:
-                    alert_time = alert["alertDate"]
-                    break
+                    new_time = datetime.datetime.strptime(alert["alertDate"], "%Y-%m-%d %H:%M:%S")
+                    time_diff = abs(alert_time - new_time)
+                    # Check if new time is withing 5 minutes
+                    if time_diff <= datetime.timedelta(minutes=5):
+                        # We have a match. Assign and stop looking
+                        alert_time = new_time
+                        break
 
-            embed_ls.append(Notificator.generate_alert_embed(int(alert_data["cat"]), district, district_data.migun_time,
-                                                             alert_time.__str__(), 'he'))
+                    # it's not within 5 minutes, keep looking.
+                    # DF Code ruined me, and now I overuse break and continue.
+
+            alert_time_str = alert_time.strftime("%Y-%m-%d %H:%M:%S")
+
+            embed_ls.append(Notificator.generate_alert_embed(new_alert, district, district_data.migun_time,
+                                                             alert_time_str, 'he'))
             if len(embed_ls) == 10:
                 embed_ls_ls.append(embed_ls)
                 embed_ls = []
@@ -153,7 +182,8 @@ class Notificator(commands.Cog):
                     continue
                 await dc_ch.send(embeds=embed_list, view=self.hfc_button_view())
 
-    @app_commands.command(name='register', description='Register a channel to receive HFC alerts')
+    @app_commands.command(name='register', description='Register a channel to receive HFC alerts (Requires Manage Channels)')
+    @app_commands.checks.has_permissions(manage_channels=True)
     async def register_channel(self, intr: discord.Interaction):
         channel_id = intr.channel_id
         if intr.channel.guild is not None:
@@ -178,7 +208,13 @@ class Notificator(commands.Cog):
         except AttributeError:
             await intr.response.send_message(f'This channel will now receive HFC alerts.')
 
-    @app_commands.command(name='unregister', description='Stop a channel from receiving HFC alerts')
+    @register_channel.error
+    async def register_channel_error(self, intr: discord.Interaction, error):
+        if isinstance(error, app_commands.MissingPermissions):
+            await intr.response.send_message('Error: You are missing the Manage Channels permission.')
+
+    @app_commands.command(name='unregister', description='Stop a channel from receiving HFC alerts (Requires Manage Channels)')
+    @app_commands.checks.has_permissions(manage_channels=True)
     async def unregister_channel(self, intr: discord.Interaction):
         channel_id = intr.channel_id
 
@@ -203,6 +239,11 @@ class Notificator(commands.Cog):
             await intr.response.send_message(f'Channel #{intr.channel.name} will no longer receive HFC alerts')
         except AttributeError:
             await intr.response.send_message(f'This channel will no longer receive HFC alerts')
+
+    @unregister_channel.error
+    async def register_channel_error(self, intr: discord.Interaction, error):
+        if isinstance(error, app_commands.MissingPermissions):
+            await intr.response.send_message('Error: You are missing the Manage Channels permission.')
 
     @app_commands.command(name='about', description='Info about the bot')
     async def about_bot(self, intr: discord.Interaction):

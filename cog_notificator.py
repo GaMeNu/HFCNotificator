@@ -255,7 +255,9 @@ class Notificator(commands.Cog):
                     value='This is a bot that connects to the HFC\'s servers and sends real-time notifications about alerts in Israel.',
                     inline=False)
         e.add_field(name='Setup',
-                    value='Just invite the bot to a server (see \"Links\" below), and /register a channel to start receiving notifications.',
+                    value='Just invite the bot to a server (see \"Links\" below), and /register a channel to start receiving notifications.\n'
+                          'Please do note that the main version of the bot is hosted on a private machine, so it may be a bit slow (although it doesn\'t seem to be an issue yet).\n'
+                          'Feel free to host your own version!',
                     inline=False)
         e.add_field(name='Can I host it?',
                     value='Yes! This bot was made with self-hosting in mind.\nMore info on the project\'s README page on GitHub',

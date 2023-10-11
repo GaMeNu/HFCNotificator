@@ -8,11 +8,13 @@
 This is a bot that connects to the HFC's servers and sends real-time notifications about alerts in Israel.
 
 ### Setup
- Just invite the bot to a server (see "Links" below), and /register a channel to start receiving notifications!
+Just invite the bot to a server (see "Links" below), and /register a channel to start receiving notifications!
+
+Please do note that the bot instance listed here is hosted on a private machine, and may be a bit slow (although it doesn't seem to be an issue yet). Feel free to host your own version!
 
 ## Self-hosting
 ### Requirements
-#### Required PyPI packages (run with `pip install`)
+#### Required PyPI packages (run each with `pip install`)
 ```
 discord.py
 mysql-connector-python
@@ -30,6 +32,8 @@ AUTHOR_ID = <Your Discord user ID>
 DB_USERNAME = <MySQL database username>
 DB_PASSWORD = <MySQL database password>
 ```
+
+note that the .env file must be in the same directory as main.py
 
 ## Links
 [GitHub](https://github.com/GaMeNu/HFCNotificator)

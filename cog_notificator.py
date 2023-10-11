@@ -351,6 +351,7 @@ class Notificator(commands.Cog):
             raise ValueError("Page number out of range")
 
         ret_str = f'Page {page_number + 1}/{alert_counter//alerts_in_page + 1}\n\n'
+
         for alert in alert_history[(page_number * alerts_in_page):((page_number + 1) * alerts_in_page)]:
             alert_date = datetime.datetime.strptime(alert["alertDate"], "%Y-%m-%d %H:%M:%S")
 

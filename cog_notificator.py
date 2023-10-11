@@ -42,8 +42,6 @@ class AlertReqs:
 
         content = req.text
 
-        print(req.text)
-
         return json.loads(content)
 
 

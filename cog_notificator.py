@@ -21,12 +21,11 @@ AUTHOR_ID = int(os.getenv('AUTHOR_ID'))
 class AlertReqs:
     @staticmethod
     def request_alert_json() -> dict | None:
-
         req = requests.get('https://www.oref.org.il/WarningMessages/alert/alerts.json', headers={
             'Referer': 'https://www.oref.org.il/',
             'X-Requested-With': 'XMLHttpRequest',
             'Client': 'HFC Notificator bot for Discord'
-        })
+        }, timeout=5)
 
         decoded = req.content.decode('utf-8-sig')
 
@@ -39,7 +38,7 @@ class AlertReqs:
 
     @staticmethod
     def request_history_json() -> dict | None:
-        req = requests.get('https://www.oref.org.il/WarningMessages/History/AlertsHistory.json')
+        req = requests.get('https://www.oref.org.il/WarningMessages/History/AlertsHistory.json', timeout=5)
 
         content = req.text
 
@@ -90,7 +89,11 @@ class Notificator(commands.Cog):
 
     @tasks.loop(seconds=1)
     async def check_for_updates(self):
-        current_alert: dict = AlertReqs.request_alert_json()
+        try:
+            current_alert: dict = AlertReqs.request_alert_json()
+        except requests.exceptions.Timeout as error:
+            self.log.error(f'Request timed out: {error}')
+            return
         self.log.debug(f'Alert response: {current_alert}')
         if current_alert is None:
             return
@@ -113,13 +116,16 @@ class Notificator(commands.Cog):
         self.active_districts = data
 
     @staticmethod
-    def generate_alert_embed(alert_object: Alert, district: str, arrival_time: int, time: str, lang: str) -> discord.Embed:
+    def generate_alert_embed(alert_object: Alert, district: str, arrival_time: int | None, time: str, lang: str) -> discord.Embed:
         e = discord.Embed(color=discord.Color.from_str('#FF0000'))
         e.title = f'התראה ב{district}'
         match alert_object.category:
             case 1:
                 e.add_field(name=district, value=alert_object.title, inline=False)
-                e.add_field(name='זמן מיגון', value=f'{arrival_time} שניות', inline=False)
+                if arrival_time is not None:
+                    e.add_field(name='זמן מיגון', value=f'{arrival_time} שניות', inline=False)
+                else:
+                    e.add_field(name='זמן מיגון', value='שגיאה בהוצאת המידע', inline=False)
             case _:
                 e.add_field(name=district, value=alert_object.title)
         e.add_field(name='נכון ל', value=time, inline=False)
@@ -137,7 +143,11 @@ class Notificator(commands.Cog):
         return view
 
     async def send_new_alert(self, alert_data: dict, new_districts: list[str]):
-        alert_history = AlertReqs.request_history_json()[0:100]
+        try:
+            alert_history = AlertReqs.request_history_json()[0:100]
+        except requests.exceptions.Timeout as error:
+            self.log.error(f'Request timed out: {error}')
+            alert_history = None
 
         embed_ls: list[discord.Embed] = []
         embed_ls_ls: list[list[discord.Embed]] = []
@@ -147,23 +157,30 @@ class Notificator(commands.Cog):
         for district in new_districts:
             district_data = self.db.get_district_by_name(district)
             alert_time = datetime.datetime.now()  # .strftime()
-            for alert in alert_history:
-                if alert["data"] == district:
-                    new_time = datetime.datetime.strptime(alert["alertDate"], "%Y-%m-%d %H:%M:%S")
-                    time_diff = abs(alert_time - new_time)
-                    # Check if new time is withing 5 minutes
-                    if time_diff <= datetime.timedelta(minutes=5):
-                        # We have a match. Assign and stop looking
-                        alert_time = new_time
-                        break
 
-                    # it's not within 5 minutes, keep looking.
-                    # DF Code ruined me, and now I overuse break and continue.
+            # TODO: THIS REQUIRES SIMPLIFICATION ASAP
+            if alert_history is not None:
+                for alert in alert_history:
+                    if alert["data"] == district:
+                        new_time = datetime.datetime.strptime(alert["alertDate"], "%Y-%m-%d %H:%M:%S")
+                        time_diff = abs(alert_time - new_time)
+                        # Check if new time is withing 5 minutes
+                        if time_diff <= datetime.timedelta(minutes=5):
+                            # We have a match. Assign and stop looking
+                            alert_time = new_time
+                            break
+            else:
+                alert_time = datetime.datetime.now()
+
+                # it's not within 5 minutes, keep looking.
+                # DF Code ruined me, and now I overuse break and continue.
 
             alert_time_str = alert_time.strftime("%Y-%m-%d %H:%M:%S")
-
-            embed_ls.append(Notificator.generate_alert_embed(new_alert, district, district_data.migun_time,
-                                                             alert_time_str, 'he'))
+            if district_data is not None:
+                embed_ls.append(Notificator.generate_alert_embed(new_alert, district, district_data.migun_time,
+                                                                 alert_time_str, 'he'))
+            else:
+                embed_ls.append(Notificator.generate_alert_embed(new_alert, district, None, alert_time_str, 'he'))
             if len(embed_ls) == 10:
                 embed_ls_ls.append(embed_ls)
                 embed_ls = []

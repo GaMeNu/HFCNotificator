@@ -164,10 +164,13 @@ class DBAccess:
             crsr.execute('DELETE FROM areas WHERE area_id=%s', (id,))
         self.connection.commit()
 
-    def get_district_by_name(self, name: str):
+    def get_district_by_name(self, name: str) -> District | None:
         with self.connection.cursor() as crsr:
             crsr.execute('SELECT * FROM districts WHERE district_name=%s', (name,))
             res = crsr.fetchone()
             crsr.fetchall()
+
+        if res is None:
+            return None
 
         return District(res[0], res[1], res[2], res[3])

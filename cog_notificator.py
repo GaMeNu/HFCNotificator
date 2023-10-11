@@ -9,8 +9,6 @@ from discord.ext import commands, tasks
 from discord import app_commands
 
 import logging
-
-import db_access
 from db_access import DBAccess
 from markdown import md
 
@@ -21,6 +19,11 @@ AUTHOR_ID = int(os.getenv('AUTHOR_ID'))
 class AlertReqs:
     @staticmethod
     def request_alert_json() -> dict | None:
+        """
+        Request a json of the current running alert
+        :return: JSON object as Python dict, or None if there's no alert running
+        :raises requests.exceptions.Timeout: If request times out (5 seconds)
+        """
         req = requests.get('https://www.oref.org.il/WarningMessages/alert/alerts.json', headers={
             'Referer': 'https://www.oref.org.il/',
             'X-Requested-With': 'XMLHttpRequest',
@@ -37,7 +40,12 @@ class AlertReqs:
         return ret_dict
 
     @staticmethod
-    def request_history_json() -> dict | None:
+    def request_history_json() -> dict:
+        """
+        Request a json of the alert history from last day
+        :return: JSON object as Python dict
+        :raises requests.exceptions.Timeout: If request times out (5 seconds)
+        """
         req = requests.get('https://www.oref.org.il/WarningMessages/History/AlertsHistory.json', timeout=5)
 
         content = req.text
@@ -275,6 +283,87 @@ class Notificator(commands.Cog):
                 await intr.response.send_message('Error: You are missing the Manage Channels permission.')
                 return
             await self.attempt_unregistration(intr, self.db.get_channel(intr.user.id))
+
+    @app_commands.command(name='latest',
+                          description='Get all alerts up to a certain time back (may be slightly outdated)')
+    async def latest_alerts(self, intr: discord.Interaction, time: int, unit: str, page: int = 1):
+        units = ['h', 'hours', 'm', 'minutes', 's', 'seconds']
+        if unit not in units:
+            await intr.response.send_message(f'Invalid time unit, please use one of the following:\n'
+                                       f'{", ".join(units)}')
+            return
+        time_s = time
+        if unit in ['h', 'hours']:
+            time_s *= 3600
+        elif unit in ['m', 'minutes']:
+            time_s *= 60
+
+        if time_s > 86400:
+            await intr.response.send_message('You can currently only view history up to 1 day back.\n'
+                                             f'Please use the {md.u(md.hl("Home Front Command Website", "https://www.oref.org.il/"))} to view alerts further back')
+            return
+
+        page_number = page - 1
+        alert_count = 20
+
+        try:
+            history_page = Notificator.get_alert_history_page(time_s, page_number, alert_count)
+        except requests.exceptions.Timeout:
+            await intr.response.send_message('Request timed out.')
+            return
+        except ValueError:
+            await intr.response.send_message('Page number is too high.')
+            return
+
+        if history_page == '':
+            history_page = 'No results found.'
+
+        view = self.hfc_button_view()
+        await intr.response.send_message(history_page,
+                                         view=view)
+
+    @staticmethod
+    def get_alert_history_page(time_back: int, page_number: int, alerts_in_page: int) -> str:
+        alert_history = AlertReqs.request_history_json()
+
+        current_time = datetime.datetime.now()
+        time_back = datetime.timedelta(seconds=time_back)
+
+        alert_counter = 0
+
+        for alert in alert_history:
+            # This can be merged with the other loop to optimize performance.
+            # Especially considering Python is a slow language.
+            # Too bad!
+            alert_date = datetime.datetime.strptime(alert["alertDate"], "%Y-%m-%d %H:%M:%S")
+
+            if abs(current_time - alert_date) > time_back:
+                break
+
+            alert_counter += 1
+
+        max_page = alert_counter // alerts_in_page
+
+        if alert_counter % alerts_in_page != 0:
+            max_page += 1
+
+        if page_number > max_page:
+            raise ValueError("Page number out of range")
+
+        ret_str = f'Page {page_number + 1}/{alert_counter//alerts_in_page + 1}\n\n'
+        for alert in alert_history[(page_number * alerts_in_page):((page_number + 1) * alerts_in_page)]:
+            alert_date = datetime.datetime.strptime(alert["alertDate"], "%Y-%m-%d %H:%M:%S")
+
+            if abs(current_time - alert_date) > time_back:
+                break
+
+            ret_str += f'התראה ב{md.b(alert["data"])}\n' \
+                       f'{md.u(alert["title"])}\n' \
+                       f'בשעה {alert["alertDate"]}\n\n'
+
+
+
+        return ret_str
 
     @app_commands.command(name='about', description='Info about the bot')
     async def about_bot(self, intr: discord.Interaction):

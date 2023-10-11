@@ -260,7 +260,7 @@ class Notificator(commands.Cog):
                           'Feel free to host your own version!',
                     inline=False)
         e.add_field(name='Can I host it?',
-                    value='Yes! This bot was made with self-hosting in mind.\nMore info on the project\'s README page on GitHub',
+                    value='Yes! Everything is available in the GitHub repository.\nMore info on the project\'s README page (See Links below).',
                     inline=False)
         e.add_field(name='Links',
                     value=f'{md.hl("GitHub", "https://github.com/GaMeNu/HFCNotificator")}\n'

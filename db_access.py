@@ -23,7 +23,7 @@ class District:
 
 
 class Channel:
-    def __init__(self, id: int, server_id: int, channel_lang: str):
+    def __init__(self, id: int, server_id: int | None, channel_lang: str):
         self.id = id
         self.server_id = server_id
         self.channel_lang = channel_lang

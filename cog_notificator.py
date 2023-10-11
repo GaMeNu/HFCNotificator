@@ -10,6 +10,7 @@ from discord import app_commands
 
 import logging
 
+import db_access
 from db_access import DBAccess
 from markdown import md
 
@@ -190,6 +191,9 @@ class Notificator(commands.Cog):
             server_id = None
             channel_id = intr.user.id
 
+        await self.attempt_registration(intr, channel_id, server_id)
+
+    async def attempt_registration(self, intr, channel_id, server_id):
         if self.db.get_channel(channel_id) is not None:
             try:
                 await intr.response.send_message(f'Channel #{intr.channel.name} is already receiving HFC alerts.')
@@ -199,7 +203,6 @@ class Notificator(commands.Cog):
 
         if server_id is not None and self.db.get_server(server_id) is None:
             self.db.add_server(server_id, 'he')
-
         self.db.add_channel(channel_id, server_id, 'he')
         try:
             await intr.response.send_message(f'Channel #{intr.channel.name} will now receive HFC alerts.')
@@ -209,7 +212,11 @@ class Notificator(commands.Cog):
     @register_channel.error
     async def register_channel_error(self, intr: discord.Interaction, error):
         if isinstance(error, app_commands.MissingPermissions):
-            await intr.response.send_message('Error: You are missing the Manage Channels permission.')
+            if intr.guild is not None:
+                await intr.response.send_message('Error: You are missing the Manage Channels permission.')
+                return
+            await self.attempt_registration(intr, intr.user.id, None)
+
 
     @app_commands.command(name='unregister', description='Stop a channel from receiving HFC alerts (Requires Manage Channels)')
     @app_commands.checks.has_permissions(manage_channels=True)
@@ -220,8 +227,10 @@ class Notificator(commands.Cog):
         if channel is None:
             channel = self.db.get_channel(intr.user.id)
 
-        if channel is None:
+        await self.attempt_unregistration(intr, channel)
 
+    async def attempt_unregistration(self, intr, channel):
+        if channel is None:
             try:
                 await intr.response.send_message(f'Channel #{intr.channel.name} is not yet receiving HFC alerts')
             except AttributeError:
@@ -229,19 +238,21 @@ class Notificator(commands.Cog):
             return
 
         if channel.server_id is not None:
-            self.db.remove_channel(channel_id)
+            self.db.remove_channel(channel.id)
         else:
             self.db.remove_channel(intr.user.id)
-
         try:
             await intr.response.send_message(f'Channel #{intr.channel.name} will no longer receive HFC alerts')
         except AttributeError:
             await intr.response.send_message(f'This channel will no longer receive HFC alerts')
 
     @unregister_channel.error
-    async def register_channel_error(self, intr: discord.Interaction, error):
+    async def unregister_channel_error(self, intr: discord.Interaction, error):
         if isinstance(error, app_commands.MissingPermissions):
-            await intr.response.send_message('Error: You are missing the Manage Channels permission.')
+            if intr.guild is not None:
+                await intr.response.send_message('Error: You are missing the Manage Channels permission.')
+                return
+            await self.attempt_unregistration(intr, self.db.get_channel(intr.user.id))
 
     @app_commands.command(name='about', description='Info about the bot')
     async def about_bot(self, intr: discord.Interaction):
@@ -255,7 +266,8 @@ class Notificator(commands.Cog):
                     value='This is a bot that connects to the HFC\'s servers and sends real-time notifications about alerts in Israel.',
                     inline=False)
         e.add_field(name='Setup',
-                    value='Just invite the bot to a server (see \"Links\" below), and /register a channel to start receiving notifications.\n'
+                    value='Just invite the bot to a server (see Links below), and /register a channel to start receiving notifications.\n'
+                          'Alternatively, you can /register a DM directly with the bot.\n'
                           'Please do note that the main version of the bot is hosted on a private machine, so it may be a bit slow (although it doesn\'t seem to be an issue yet).\n'
                           'Feel free to host your own version!',
                     inline=False)

@@ -12,8 +12,7 @@ Invite the bot to a server, and /register a channel, and you're ready to go!
 
 Alternatively, you can DM the bot to receive alerts directly to your DMs!
 
-Please do note that the bot instance listed here is hosted on a private machine, and may be a bit slow (although it doesn't seem to be an issue yet). Feel free to host your own version!
-
+Please do note that the bot instance listed here is hosted on a private machine, and may be a bit slow.
 ## Self-hosting
 ### Requirements
 #### Required PyPI packages (run each with `pip install`)

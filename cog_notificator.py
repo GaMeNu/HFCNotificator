@@ -55,7 +55,9 @@ class Alert:
 
     @staticmethod
     def from_dict(data: dict):
-        return Alert(int(data.get('id', '0')), int(data.get('cat', '0')), data.get('title'), data.get('data'), data.get('desc'))
+        return Alert(int(data.get('id', '0')), int(data.get('cat', '0')), data.get('title'), data.get('data'),
+                     data.get('desc'))
+
 
 class Notificator(commands.Cog):
     districts: list[dict] = json.loads(requests.get('https://www.oref.org.il//Shared/Ajax/GetDistricts.aspx').text)
@@ -116,7 +118,8 @@ class Notificator(commands.Cog):
         self.active_districts = data
 
     @staticmethod
-    def generate_alert_embed(alert_object: Alert, district: str, arrival_time: int | None, time: str, lang: str) -> discord.Embed:
+    def generate_alert_embed(alert_object: Alert, district: str, arrival_time: int | None, time: str,
+                             lang: str) -> discord.Embed:
         e = discord.Embed(color=discord.Color.from_str('#FF0000'))
         e.title = f'התראה ב{district}'
         match alert_object.category:
@@ -129,6 +132,7 @@ class Notificator(commands.Cog):
             case _:
                 e.add_field(name=district, value=alert_object.title)
         e.add_field(name='נכון ל', value=time, inline=False)
+        e.add_field(name='מידע נוסף', value=alert_object.description)
         return e
 
     @staticmethod
@@ -165,7 +169,7 @@ class Notificator(commands.Cog):
                         new_time = datetime.datetime.strptime(alert["alertDate"], "%Y-%m-%d %H:%M:%S")
                         time_diff = abs(alert_time - new_time)
                         # Check if new time is withing 5 minutes
-                        if time_diff <= datetime.timedelta(minutes=5):
+                        if time_diff <= datetime.timedelta(minutes=1):
                             # We have a match. Assign and stop looking
                             alert_time = new_time
                             break
@@ -198,7 +202,8 @@ class Notificator(commands.Cog):
                     continue
                 await dc_ch.send(embeds=embed_list, view=self.hfc_button_view())
 
-    @app_commands.command(name='register', description='Register a channel to receive HFC alerts (Requires Manage Channels)')
+    @app_commands.command(name='register',
+                          description='Register a channel to receive HFC alerts (Requires Manage Channels)')
     @app_commands.checks.has_permissions(manage_channels=True)
     async def register_channel(self, intr: discord.Interaction):
         channel_id = intr.channel_id
@@ -234,8 +239,8 @@ class Notificator(commands.Cog):
                 return
             await self.attempt_registration(intr, intr.user.id, None)
 
-
-    @app_commands.command(name='unregister', description='Stop a channel from receiving HFC alerts (Requires Manage Channels)')
+    @app_commands.command(name='unregister',
+                          description='Stop a channel from receiving HFC alerts (Requires Manage Channels)')
     @app_commands.checks.has_permissions(manage_channels=True)
     async def unregister_channel(self, intr: discord.Interaction):
         channel_id = intr.channel_id
@@ -285,20 +290,22 @@ class Notificator(commands.Cog):
         e.add_field(name='Setup',
                     value='Just invite the bot to a server (see Links below), and /register a channel to start receiving notifications.\n'
                           'Alternatively, you can /register a DM directly with the bot.\n'
-                          'Please do note that the main version of the bot is hosted on a private machine, so it may be a bit slow (although it doesn\'t seem to be an issue yet).\n'
-                          'Feel free to host your own version!',
+                          'Please do note that the main version of the bot is hosted on a private machine, so it may be a bit slow.\n'
+                          'Feel free to host your own instance!',
                     inline=False)
         e.add_field(name='Can I host it?',
                     value='Yes! Everything is available in the GitHub repository.\nMore info on the project\'s README page (See Links below).',
                     inline=False)
         e.add_field(name='Links',
-                    value=f'{md.hl("GitHub", "https://github.com/GaMeNu/HFCNotificator")}\n'
-                          f'{md.hl("Official Bot Invite Link", "https://discord.com/api/oauth2/authorize?client_id=1160344131067977738&permissions=0&scope=applications.commands%20bot")}\n'
-                          f'{md.hl("HFC Website", "https://www.oref.org.il/")}\n'
-                          f'{md.hl("Bot Profile (for DMs)", "https://discord.com/users/1160344131067977738")}',
+                    value=md.bq(f'{md.hl("GitHub", "https://github.com/GaMeNu/HFCNotificator")}\n'
+                                f'{md.hl("Official Bot Invite Link", "https://discord.com/api/oauth2/authorize?client_id=1160344131067977738&permissions=0&scope=applications.commands%20bot")}\n'
+                                f'{md.hl("HFC Website", "https://www.oref.org.il/")}\n'
+                                f'{md.hl("Bot Profile (for DMs)", "https://discord.com/users/1160344131067977738")}'),
                     inline=True)
 
-        e.add_field(name='Created by', value='GaMeNu (@gamenu)\nYrrad8', inline=True)
+        e.add_field(name='Created by', value=md.bq('GaMeNu (@gamenu)\n'
+                                                   'Yrrad8'),
+                    inline=True)
         hfc_button = discord.ui.Button(
             style=discord.ButtonStyle.link,
             label='HFC Website',
@@ -314,7 +321,6 @@ class Notificator(commands.Cog):
         view.add_item(gh_button)
         await intr.response.send_message(embed=e, view=view)
 
-
     @app_commands.command(name='test_alert', description='Send a test alert (available to bot author only)')
     async def test_alert(self, intr: discord.Interaction):
         if intr.user.id != AUTHOR_ID:
@@ -325,9 +331,9 @@ class Notificator(commands.Cog):
         await self.send_new_alert({
             "id": "133413211330000000",
             "cat": "1",
-            "title": "ירי רקטות וטילים",
+            "title": "בדיקת מערכת שליחת התראות",
             "data": [
                 "בדיקה"
             ],
-            "desc": "היכנסו למרחב המוגן ושהו בו 10 דקות"
+            "desc": "התעלמו מהודעה זו."
         }, ['בדיקה'])

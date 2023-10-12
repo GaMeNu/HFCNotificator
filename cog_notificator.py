@@ -67,6 +67,7 @@ class Alert:
                      data.get('desc'))
 
 
+# noinspection PyUnresolvedReferences
 class Notificator(commands.Cog):
     districts: list[dict] = json.loads(requests.get('https://www.oref.org.il//Shared/Ajax/GetDistricts.aspx').text)
 
@@ -337,6 +338,13 @@ class Notificator(commands.Cog):
 
     @staticmethod
     def get_alert_history_page(time_back_amount: int, page_number: int, alerts_in_page: int) -> str:
+        """
+        max_page is EXCLUSIVE!
+        :param time_back_amount: amount of time back
+        :param page_number: the page number (starting at 0)
+        :param alerts_in_page: The number of alerts in one page
+        :return: page as str
+        """
         alert_history = AlertReqs.request_history_json()
 
         current_time = datetime.datetime.now()
@@ -360,13 +368,18 @@ class Notificator(commands.Cog):
         if alert_counter % alerts_in_page != 0:
             max_page += 1
 
+        print(max_page, page_number)
+
         if time_back_amount <= 0:
             raise ValueError("Time can't be lower than 1.")
 
-        if page_number > (max_page-1):
-            raise ValueError("Page number overflow")
+        if max_page == 0:
+            raise ValueError("No results found.")
+
+        if page_number >= max_page:
+            raise ValueError("Page number is too high.")
         if page_number < 0:
-            raise ValueError("Page number underflow")
+            raise ValueError("Page number is too low.")
 
         page_info = f'Page {page_number + 1}/{alert_counter//alerts_in_page + 1}\n\n'
 

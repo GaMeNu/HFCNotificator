@@ -205,7 +205,6 @@ class Notificator(commands.Cog):
             embed_ls_ls.append(embed_ls)
 
         for channel in self.db.channel_iterator():
-            self.log.info(channel.id)
             if channel.server_id is not None:
                 dc_ch = self.bot.get_channel(channel.id)
             else:

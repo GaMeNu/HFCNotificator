@@ -215,8 +215,9 @@ class Notificator(commands.Cog):
                     continue
                 try:
                     await dc_ch.send(embeds=embed_list, view=self.hfc_button_view())
-                except discord.errors.Forbidden:
-                    self.log.warning(f'Failed to send alert in channel {channel}: No permission')
+                except BaseException as e:
+                    self.log.warning(f'Failed to send alert in channel {channel}:\n'
+                                     f'{e}')
 
 
     @app_commands.command(name='register',

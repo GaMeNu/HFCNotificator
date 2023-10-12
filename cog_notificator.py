@@ -131,7 +131,6 @@ class Notificator(commands.Cog):
         self.db.connection.close()
         self.db = DBAccess()
 
-
     @staticmethod
     def generate_alert_embed(alert_object: Alert, district: str, arrival_time: int | None, time: str,
                              lang: str) -> discord.Embed:

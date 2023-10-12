@@ -80,6 +80,8 @@ class Notificator(commands.Cog):
 
         self.active_districts = []
 
+
+
         if not self.check_for_updates.is_running():
             self.check_for_updates.start()
 
@@ -286,11 +288,22 @@ class Notificator(commands.Cog):
 
     @app_commands.command(name='latest',
                           description='Get all alerts up to a certain time back (may be slightly outdated)')
+    @app_commands.describe(time='Amount of time back',
+                           unit="The unit of time, can be 'h' (hors), 'm' (minutes), or 's' (seconds)",
+                           page='Results page')
     async def latest_alerts(self, intr: discord.Interaction, time: int, unit: str, page: int = 1):
+        """
+        Get all alerts up to a certain time back (this may be slightly outdated)
+        :param intr: command
+        :param time: Amount of time back
+        :param unit: The unit of time, can be 'h' (hors), 'm' (minutes), or 's' (seconds)
+        :param page: Results page
+        :return:
+        """
         units = ['h', 'hours', 'm', 'minutes', 's', 'seconds']
         if unit not in units:
             await intr.response.send_message(f'Invalid time unit, please use one of the following:\n'
-                                       f'{", ".join(units)}')
+                                             f'{", ".join(units)}')
             return
         time_s = time
         if unit in ['h', 'hours']:
@@ -311,8 +324,8 @@ class Notificator(commands.Cog):
         except requests.exceptions.Timeout:
             await intr.response.send_message('Request timed out.')
             return
-        except ValueError:
-            await intr.response.send_message('Page number is too high.')
+        except ValueError as e:
+            await intr.response.send_message(e.__str__())
             return
 
         if history_page == '':
@@ -323,11 +336,11 @@ class Notificator(commands.Cog):
                                          view=view)
 
     @staticmethod
-    def get_alert_history_page(time_back: int, page_number: int, alerts_in_page: int) -> str:
+    def get_alert_history_page(time_back_amount: int, page_number: int, alerts_in_page: int) -> str:
         alert_history = AlertReqs.request_history_json()
 
         current_time = datetime.datetime.now()
-        time_back = datetime.timedelta(seconds=time_back)
+        time_back = datetime.timedelta(seconds=time_back_amount)
 
         alert_counter = 0
 
@@ -347,10 +360,17 @@ class Notificator(commands.Cog):
         if alert_counter % alerts_in_page != 0:
             max_page += 1
 
-        if page_number > max_page:
-            raise ValueError("Page number out of range")
+        if time_back_amount <= 0:
+            raise ValueError("Time can't be lower than 1.")
 
-        ret_str = f'Page {page_number + 1}/{alert_counter//alerts_in_page + 1}\n\n'
+        if page_number > (max_page-1):
+            raise ValueError("Page number overflow")
+        if page_number < 0:
+            raise ValueError("Page number underflow")
+
+        page_info = f'Page {page_number + 1}/{alert_counter//alerts_in_page + 1}\n\n'
+
+        ret_str = ''
 
         for alert in alert_history[(page_number * alerts_in_page):((page_number + 1) * alerts_in_page)]:
             alert_date = datetime.datetime.strptime(alert["alertDate"], "%Y-%m-%d %H:%M:%S")
@@ -362,6 +382,10 @@ class Notificator(commands.Cog):
                        f'{md.u(alert["title"])}\n' \
                        f'בשעה {alert["alertDate"]}\n\n'
 
+        if ret_str == '':
+            ret_str = 'No results found'
+        else:
+            ret_str = page_info + ret_str
 
 
         return ret_str

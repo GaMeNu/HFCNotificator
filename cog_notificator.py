@@ -438,7 +438,7 @@ class Notificator(commands.Cog):
         e.add_field(name='Setup',
                     value='Just invite the bot to a server (see Links below), and /register a channel to start receiving notifications.\n'
                           'Alternatively, you can /register a DM directly with the bot.\n'
-                          'Please do note that the main version of the bot is hosted on a private machine, so it may be a bit slow.\n'
+                          'Please do note that the main instance of the bot is hosted on a private machine, so it may be a bit slow.\n'
                           'Feel free to host your own instance!',
                     inline=False)
         e.add_field(name='Can I host it?',

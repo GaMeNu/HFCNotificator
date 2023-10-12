@@ -163,6 +163,7 @@ class Notificator(commands.Cog):
         except requests.exceptions.Timeout as error:
             self.log.error(f'Request timed out: {error}')
             alert_history = None
+        self.log.info(f'Sending alerts to channels')
 
         embed_ls: list[discord.Embed] = []
         embed_ls_ls: list[list[discord.Embed]] = []
@@ -204,6 +205,7 @@ class Notificator(commands.Cog):
             embed_ls_ls.append(embed_ls)
 
         for channel in self.db.channel_iterator():
+            self.log.info(channel.id)
             if channel.server_id is not None:
                 dc_ch = self.bot.get_channel(channel.id)
             else:
@@ -211,7 +213,11 @@ class Notificator(commands.Cog):
             for embed_list in embed_ls_ls:
                 if dc_ch is None:
                     continue
-                await dc_ch.send(embeds=embed_list, view=self.hfc_button_view())
+                try:
+                    await dc_ch.send(embeds=embed_list, view=self.hfc_button_view())
+                except discord.errors.Forbidden:
+                    self.log.warning(f'Failed to send alert in channel {channel}: No permission')
+
 
     @app_commands.command(name='register',
                           description='Register a channel to receive HFC alerts (Requires Manage Channels)')
@@ -241,6 +247,17 @@ class Notificator(commands.Cog):
             await intr.response.send_message(f'Channel #{intr.channel.name} will now receive HFC alerts.')
         except AttributeError:
             await intr.response.send_message(f'This channel will now receive HFC alerts.')
+        try:
+            ch = self.bot.get_channel(channel_id)
+            perms = ch.overwrites_for(self.bot.user)
+            perms.update(send_messages=True)
+            await ch.set_permissions(target=ch.guild.me, overwrite=perms, reason='Update perms to allow bot to send messages in channel.')
+        except discord.errors.Forbidden as e:
+            await intr.followup.send(f'Could not allow bot to send messages to this channel! Please add the bot to this channel and allow it to send messages.\n'
+                                     f'Error info: {e.__str__()}')
+
+
+
 
     @register_channel.error
     async def register_channel_error(self, intr: discord.Interaction, error):

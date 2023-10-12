@@ -216,7 +216,7 @@ class Notificator(commands.Cog):
                 try:
                     await dc_ch.send(embeds=embed_list, view=self.hfc_button_view())
                 except BaseException as e:
-                    self.log.warning(f'Failed to send alert in channel {await self.bot.get_channel(channel.id).name} ({channel.id}):\n'
+                    self.log.warning(f'Failed to send alert in channel id={channel.id}:\n'
                                      f'{e}')
 
 

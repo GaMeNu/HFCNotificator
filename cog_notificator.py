@@ -80,6 +80,7 @@ class Notificator(commands.Cog):
         self.db = DBAccess()
 
         self.active_districts = []
+        self.reset_district_checker = 0
 
         if not self.check_for_updates.is_running():
             self.check_for_updates.start()
@@ -106,7 +107,14 @@ class Notificator(commands.Cog):
             self.log.error(f'Request timed out: {error}')
             return
         self.log.debug(f'Alert response: {current_alert}')
+
         if current_alert is None:
+            if len(self.active_districts) == 0:
+                return
+            self.reset_district_checker += 1
+            if self.reset_district_checker == 3:
+                self.active_districts = []
+                self.reset_district_checker = 0
             return
 
         data: list[str] = current_alert["data"]

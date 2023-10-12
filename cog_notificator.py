@@ -81,8 +81,6 @@ class Notificator(commands.Cog):
 
         self.active_districts = []
 
-
-
         if not self.check_for_updates.is_running():
             self.check_for_updates.start()
 
@@ -127,6 +125,12 @@ class Notificator(commands.Cog):
 
         await self.send_new_alert(current_alert, new_districts)
         self.active_districts = data
+
+    @check_for_updates.error
+    async def update_loop_error(self):
+        self.db.connection.close()
+        self.db = DBAccess()
+
 
     @staticmethod
     def generate_alert_embed(alert_object: Alert, district: str, arrival_time: int | None, time: str,
@@ -218,7 +222,6 @@ class Notificator(commands.Cog):
                     self.log.warning(f'Failed to send alert in channel id={channel.id}:\n'
                                      f'{e}')
 
-
     @app_commands.command(name='register',
                           description='Register a channel to receive HFC alerts (Requires Manage Channels)')
     @app_commands.checks.has_permissions(manage_channels=True)
@@ -251,13 +254,12 @@ class Notificator(commands.Cog):
             ch = self.bot.get_channel(channel_id)
             perms = ch.overwrites_for(self.bot.user)
             perms.update(send_messages=True)
-            await ch.set_permissions(target=ch.guild.me, overwrite=perms, reason='Update perms to allow bot to send messages in channel.')
+            await ch.set_permissions(target=ch.guild.me, overwrite=perms,
+                                     reason='Update perms to allow bot to send messages in channel.')
         except discord.errors.Forbidden as e:
-            await intr.followup.send(f'Could not allow bot to send messages to this channel! Please add the bot to this channel and allow it to send messages.\n'
-                                     f'Error info: {e.__str__()}')
-
-
-
+            await intr.followup.send(
+                f'Could not allow bot to send messages to this channel! Please add the bot to this channel and allow it to send messages.\n'
+                f'Error info: {e.__str__()}')
 
     @register_channel.error
     async def register_channel_error(self, intr: discord.Interaction, error):
@@ -398,7 +400,7 @@ class Notificator(commands.Cog):
         if page_number < 0:
             raise ValueError("Page number is too low.")
 
-        page_info = f'Page {page_number + 1}/{alert_counter//alerts_in_page + 1}\n\n'
+        page_info = f'Page {page_number + 1}/{alert_counter // alerts_in_page + 1}\n\n'
 
         ret_str = ''
 
@@ -416,7 +418,6 @@ class Notificator(commands.Cog):
             ret_str = 'No results found'
         else:
             ret_str = page_info + ret_str
-
 
         return ret_str
 

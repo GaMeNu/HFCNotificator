@@ -122,14 +122,18 @@ class Notificator(commands.Cog):
 
         if len(new_districts) == 0:
             return
-
-        await self.send_new_alert(current_alert, new_districts)
+        try:
+            await self.send_new_alert(current_alert, new_districts)
+        except BaseException as e:
+            self.log.error(f'Could not send message!\nError info: {e.__str__()}')
         self.active_districts = data
 
     @check_for_updates.error
     async def update_loop_error(self):
         self.db.connection.close()
         self.db = DBAccess()
+        if not self.check_for_updates.is_running():
+            self.check_for_updates.start()
 
     @staticmethod
     def generate_alert_embed(alert_object: Alert, district: str, arrival_time: int | None, time: str,

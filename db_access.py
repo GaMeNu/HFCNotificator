@@ -45,6 +45,7 @@ class ChannelIterator:
     def __next__(self) -> Channel:
         res = self.cursor.fetchone()
         if res is None:
+            self.cursor.close()
             raise StopIteration
         return Channel(res[0], res[1], res[2])
 

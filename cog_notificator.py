@@ -109,10 +109,13 @@ class Notificator(commands.Cog):
         self.log.debug(f'Alert response: {current_alert}')
 
         if current_alert is None:
+
             if len(self.active_districts) == 0:
                 return
+
             self.reset_district_checker += 1
             if self.reset_district_checker == 3:
+                print('reset')
                 self.active_districts = []
                 self.reset_district_checker = 0
             return
@@ -136,8 +139,11 @@ class Notificator(commands.Cog):
             self.log.error(f'Could not send message!\nError info: {e.__str__()}')
         self.active_districts = data
 
-    @check_for_updates.error
+    @check_for_updates.after_loop
     async def update_loop_error(self):
+        # Attempt to force stupid "Unread Result" down its own throat
+        # and just reset the connection.
+        # I'm not dealing with Unread Results
         self.db.connection.close()
         self.db = DBAccess()
         if not self.check_for_updates.is_running():
@@ -206,7 +212,7 @@ class Notificator(commands.Cog):
                 # it's not within 5 minutes, keep looking.
                 # DF Code ruined me, and now I overuse break and continue.
 
-            alert_time_str = alert_time.strftime("%Y-%m-%d %H:%M:%S")
+            alert_time_str = alert_time.strftime("%H:%M:%S %d/%m/%Y")
             if district_data is not None:
                 embed_ls.append(Notificator.generate_alert_embed(new_alert, district, district_data.migun_time,
                                                                  alert_time_str, 'he'))

@@ -154,15 +154,16 @@ class Notificator(commands.Cog):
                              lang: str) -> discord.Embed:
         e = discord.Embed(color=discord.Color.from_str('#FF0000'))
         e.title = f'התראה ב{district}'
+        e.add_field(name=district, value=alert_object.title, inline=False)
         match alert_object.category:
             case 1:
-                e.add_field(name=district, value=alert_object.title, inline=False)
                 if arrival_time is not None:
                     e.add_field(name='זמן מיגון', value=f'{arrival_time} שניות', inline=False)
                 else:
                     e.add_field(name='זמן מיגון', value='שגיאה בהוצאת המידע', inline=False)
+
             case _:
-                e.add_field(name=district, value=alert_object.title)
+                pass
         e.add_field(name='נכון ל', value=time, inline=False)
         e.add_field(name='מידע נוסף', value=alert_object.description)
         return e
@@ -483,19 +484,24 @@ class Notificator(commands.Cog):
         view.add_item(gh_button)
         await intr.response.send_message(embed=e, view=view)
 
-    @app_commands.command(name='test_alert', description='Send a test alert (available to bot author only)')
-    async def test_alert(self, intr: discord.Interaction):
+    @app_commands.command(name='send_alert', description='Send a custom alert (available to bot author only)')
+    async def test_alert(self,
+                         intr: discord.Interaction,
+                         title: str = 'בדיקת מערכת שליחת התראות',
+                         desc: str = 'התעלמו מהתראה זו',
+                         districts: str = 'בדיקה'):
         if intr.user.id != AUTHOR_ID:
             await intr.response.send_message('No access.')
             return
         await intr.response.send_message('Sending test alert...')
 
+        districts_ls = [word.strip() for word in districts.split(',')]
+
         await self.send_new_alert({
             "id": "133413211330000000",
-            "cat": "1",
-            "title": "בדיקת מערכת שליחת התראות",
-            "data": [
-                "בדיקה"
-            ],
-            "desc": "התעלמו מהודעה זו."
-        }, ['בדיקה'])
+            "cat": "99",
+            "title": title,
+            "data": districts,
+            "desc": desc
+        }, districts)
+

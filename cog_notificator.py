@@ -501,7 +501,7 @@ class Notificator(commands.Cog):
             "id": "133413211330000000",
             "cat": "99",
             "title": title,
-            "data": districts,
+            "data": districts_ls,
             "desc": desc
-        }, districts)
+        }, districts_ls)
 

@@ -212,7 +212,7 @@ class Notificator(commands.Cog):
                 # it's not within 5 minutes, keep looking.
                 # DF Code ruined me, and now I overuse break and continue.
 
-            alert_time_str = alert_time.strftime("%H:%M:%S %d/%m/%Y")
+            alert_time_str = alert_time.strftime("%H:%M:%S\n%d/%m/%Y")
             if district_data is not None:
                 embed_ls.append(Notificator.generate_alert_embed(new_alert, district, district_data.migun_time,
                                                                  alert_time_str, 'he'))

@@ -33,14 +33,17 @@ class AlertReqs:
         decoded = req.content.decode('utf-8-sig')
 
         if decoded is None or len(decoded) < 3:  # Why does it get a '\r\n' wtf
-            ret_dict = None
+            ret_dict = {}
         else:
-            ret_dict = json.loads(decoded)
+            try:
+                ret_dict = json.loads(decoded)
+            except (json.decoder.JSONDecodeError, json.JSONDecodeError):
+                ret_dict = None
 
         return ret_dict
 
     @staticmethod
-    def request_history_json() -> dict:
+    def request_history_json() -> dict | None:
         """
         Request a json of the alert history from last day
         :return: JSON object as Python dict
@@ -50,7 +53,11 @@ class AlertReqs:
 
         content = req.text
 
-        return json.loads(content)
+        try:
+            ret_dict = json.loads(content)
+        except (json.JSONDecodeError, json.decoder.JSONDecodeError):
+            ret_dict = None
+        return ret_dict
 
 
 class Alert:
@@ -63,7 +70,10 @@ class Alert:
 
     @staticmethod
     def from_dict(data: dict):
-        return Alert(int(data.get('id', '0')), int(data.get('cat', '0')), data.get('title'), data.get('data'),
+        return Alert(int(data.get('id', '0')),
+                     int(data.get('cat', '0')),
+                     data.get('title'),
+                     data.get('data'),
                      data.get('desc'))
 
 
@@ -108,7 +118,9 @@ class Notificator(commands.Cog):
             return
         self.log.debug(f'Alert response: {current_alert}')
 
-        if current_alert is None:
+        if current_alert is None or len(current_alert) == 0:
+            if current_alert is None:
+                self.log.warning('Error while current alert data.')
 
             if len(self.active_districts) == 0:
                 return
@@ -152,6 +164,7 @@ class Notificator(commands.Cog):
     @staticmethod
     def generate_alert_embed(alert_object: Alert, district: str, arrival_time: int | None, time: str,
                              lang: str) -> discord.Embed:
+        # TODO: Using 1 generate alert function is probably bad, should probably split into a utility class
         e = discord.Embed(color=discord.Color.from_str('#FF0000'))
         e.title = f'התראה ב{district}'
         e.add_field(name=district, value=alert_object.title, inline=False)

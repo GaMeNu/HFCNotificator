@@ -93,6 +93,7 @@ class DBAccess:
         with self.connection.cursor() as crsr:
             crsr.execute('SELECT * FROM areas WHERE area_id=%s', (id,))
             res = crsr.fetchone()
+            crsr.fetchall()
 
         if res is not None:
             return Area(res[0], res[1])
@@ -103,6 +104,7 @@ class DBAccess:
         with self.connection.cursor() as crsr:
             crsr.execute('SELECT * FROM districts WHERE district_id=%s', (id,))
             res = crsr.fetchone()
+            crsr.fetchall()
 
         if res is not None:
             return District(res[0], res[1], res[2], res[3])
@@ -116,6 +118,7 @@ class DBAccess:
         with self.connection.cursor() as crsr:
             crsr.execute('SELECT * FROM servers WHERE server_id=%s', (id,))
             res = crsr.fetchone()
+            crsr.fetchall()
 
         if res is not None:
             return Server(res[0], res[1])
@@ -126,6 +129,7 @@ class DBAccess:
         with self.connection.cursor() as crsr:
             crsr.execute('SELECT * FROM channels WHERE channel_id=%s', (id,))
             res = crsr.fetchone()
+            crsr.fetchall()
 
         if res is not None:
             return Channel(res[0], res[1], res[2])

@@ -77,7 +77,7 @@ class DBAccess:
                 self.connection = None
                 log.warning(f"Couldn't connect to db. This is attempt #{i}")
                 time.sleep(5)
-                
+
         if self.connection is None:
             self.connection = mysql.connect(
                 host='localhost',

@@ -1,4 +1,6 @@
+import logging
 import os
+import time
 
 from dotenv import load_dotenv
 from mysql import connector as mysql
@@ -50,16 +52,39 @@ class ChannelIterator:
         return Channel(res[0], res[1], res[2])
 
 
-
 class DBAccess:
-    def __init__(self):
-        self.connection = mysql.connect(
-            host='localhost',
-            user=DB_USERNAME,
-            password=DB_PASSWORD,
-            database='hfc_db'
-        )
+    def __init__(self, handler: logging.Handler = None):
 
+        log = logging.Logger('DBAccess')
+
+        if handler is not None:
+            log.addHandler(handler)
+        else:
+            log.addHandler(logging.StreamHandler())
+
+        self.connection = None
+
+        for i in range(12):
+            try:
+                self.connection = mysql.connect(
+                    host='localhost',
+                    user=DB_USERNAME,
+                    password=DB_PASSWORD,
+                    database='hfc_db'
+                )
+                break
+            except mysql.Error as e:
+                self.connection = None
+                log.warning(f"Couldn't connect to db. This is attempt #{i}")
+                time.sleep(5)
+                
+        if self.connection is None:
+            self.connection = mysql.connect(
+                host='localhost',
+                user=DB_USERNAME,
+                password=DB_PASSWORD,
+                database='hfc_db'
+            )
 
     def add_area(self, area_id: int, area_name: str):
         with self.connection.cursor() as crsr:

@@ -82,12 +82,12 @@ class Alert:
 
 # noinspection PyUnresolvedReferences
 class Notificator(commands.Cog):
+    location_group = app_commands.Group(name='locations',
+                                        description='Commands related adding, removing, or setting locations.')
     districts: list[dict] = json.loads(requests.get('https://www.oref.org.il//Shared/Ajax/GetDistricts.aspx').text)
 
     def __init__(self, bot: commands.Bot, handler: logging.Handler):
         self.bot = bot
-
-        self.bot.add_command(Location())
 
         self.log = logging.Logger('Notificator')
         self.log.addHandler(handler)
@@ -522,8 +522,6 @@ class Notificator(commands.Cog):
             "data": districts_ls,
             "desc": desc
         }, districts_ls)
-
-    location_group = app_commands.Group(name='locations', description='Commands related adding, removing, or setting locations.')
 
     @staticmethod
     def locations_page(data_list: list, page: int, res_in_page: int = 50) -> str:

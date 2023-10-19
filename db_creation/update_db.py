@@ -14,7 +14,9 @@ DB_PASSWORD = os.getenv('DB_PASSWORD')
 
 def updater_1_0_0(connection: mysql.connection.MySQLConnection) -> str:
     crsr = connection.cursor()
-    crsr.execute('ALTER TABLE `hfc_db`.`channels` ADD COLUMN `locations` JSON NULL;')
+    crsr.execute('ALTER TABLE `hfc_db`.`channels` '
+                 'ADD COLUMN `locations` JSON '
+                 'DEFAULT JSON_ARRAY();')
     crsr.close()
     return '1.0.1'
 

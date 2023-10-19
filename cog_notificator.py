@@ -1,6 +1,9 @@
 import datetime
 import json
 import os
+import random
+from _xxsubinterpreters import channel_recv
+
 import requests
 
 import discord
@@ -83,6 +86,8 @@ class Notificator(commands.Cog):
 
     def __init__(self, bot: commands.Bot, handler: logging.Handler):
         self.bot = bot
+
+        self.bot.add_command(Location())
 
         self.log = logging.Logger('Notificator')
         self.log.addHandler(handler)
@@ -518,3 +523,135 @@ class Notificator(commands.Cog):
             "desc": desc
         }, districts_ls)
 
+    location_group = app_commands.Group(name='locations', description='Commands related adding, removing, or setting locations.')
+
+    @staticmethod
+    def locations_page(data_list: list, page: int, res_in_page: int = 50) -> str:
+        """
+        Page starts at 0
+
+        max_page is EXCLUSIVE
+        :param data_list: custom data list to get page info of
+        :param page: District page
+        :param res_in_page: Amount of districts to put in one pages
+        :return:
+        """
+
+        dist_ls = data_list
+
+        dist_len = len(dist_ls)
+
+        if dist_len == 0:
+            return 'No results found.'
+
+        max_page = dist_len // res_in_page
+        if dist_len % res_in_page != 0:
+            max_page += 1
+
+        if page >= max_page:
+            raise ValueError('Page number is too high.')
+        if page < 0:
+            raise ValueError('Page number is too low.')
+
+        page_content = f'Page { md.b(f"{page + 1}/{max_page}") }\n\n<District ID> - <District name>\n\n'
+
+        start_i = page * res_in_page
+        end_i = min(start_i + res_in_page, dist_len)
+        for district in dist_ls[start_i:end_i]:
+            page_content += f'{district[0]} - {district[1]}\n'
+
+        return page_content
+
+    @location_group.command(name='locations_list', description='Show the list of all available locations')
+    async def locations_list(self, intr: discord.Interaction, page: int = 1):
+
+        try:
+            page = self.locations_page(sorted(self.db.get_all_districts(), key=lambda tup: tup[1]), page - 1)
+        except ValueError as e:
+            await intr.response.send_message(e.__str__())
+            return
+
+        if len(page) > 2000:
+            await intr.response.send_message('Page content exceeds character limit.\nPlease contact the bot authors with the command you\'ve tried to run.')
+            return
+
+        await intr.response.send_message(page)
+
+    @location_group.command(name='add', description='Add a location(s) to the location list')
+    @app_commands.describe(locations='A list of comma-separated Area IDs')
+    async def location_add(self, intr: discord.Interaction, locations: str):
+
+        if intr.guild is not None and intr.user.guild_permissions.manage_channels is False:
+            await intr.response.send_message('Error: You are missing the Manage Channels permission.')
+            return
+
+        locations_ls = [word.strip() for word in locations.split(',')]
+        location_ids = []
+        for location in locations_ls:
+            try:
+                location_ids.append(int(location))
+            except ValueError:
+                await intr.response.send_message(f'District ID {md.b(f"{location}")} is not a valid district ID.')
+                return
+
+        channel_id = intr.channel_id
+
+        channel = self.db.get_channel(channel_id)
+        if channel is None:
+            channel = self.db.get_channel(intr.user.id)
+            if channel is None:
+                await intr.response.send_message('Could not find this channel. Are you sure it is registered?')
+                return
+
+        self.db.add_channel_districts(channel.id, location_ids)
+
+    @location_group.command(name='remove', description='Remove a location(s) to the location list')
+    @app_commands.describe(locations='A list of comma-separated Area IDs')
+    async def location_remove(self, intr: discord.Interaction, locations: str):
+
+        if intr.guild is not None and intr.user.guild_permissions.manage_channels is False:
+            await intr.response.send_message('Error: You are missing the Manage Channels permission.')
+            return
+
+        locations_ls = [word.strip() for word in locations.split(',')]
+        location_ids = []
+        for location in locations_ls:
+            try:
+                location_ids.append(int(location))
+            except ValueError:
+                await intr.response.send_message(f'District ID {md.b(f"{location}")} is not a valid district ID.')
+                return
+
+        channel_id = intr.channel_id
+
+        channel = self.db.get_channel(channel_id)
+        if channel is None:
+            channel = self.db.get_channel(intr.user.id)
+            if channel is None:
+                await intr.response.send_message('Could not find this channel. Are you sure it is registered?')
+                return
+
+        self.db.remove_channel_districts(channel.id, location_ids)
+
+    @location_group.command(name='registered', description='List all locations registered to this channel')
+    async def location_registered(self, intr: discord.Interaction, page: int = 1):
+
+        channel_id = intr.channel_id
+
+        channel = self.db.get_channel(channel_id)
+        if channel is None:
+            channel = self.db.get_channel(intr.user.id)
+            if channel is None:
+                await intr.response.send_message('Could not find this channel. Are you sure it is registered?')
+                return
+
+        districts = self.db.get_channel_districts(chanel.id)
+
+        page = self.locations_page(districts, page-1)
+
+        if len(page) > 2000:
+            await intr.response.send_message(
+                'Page content exceeds character limit.\nPlease contact the bot authors with the command you\'ve tried to run.')
+            return
+
+        await intr.response.send_message(page)

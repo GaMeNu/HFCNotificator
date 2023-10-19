@@ -1,6 +1,8 @@
+import json
 import logging
 import os
 import time
+from typing import Sequence
 
 from dotenv import load_dotenv
 from mysql import connector as mysql
@@ -15,6 +17,10 @@ class Area:
         self.id = id
         self.name = name
 
+    @staticmethod
+    def from_tuple(tup: Sequence):
+        return Area(tup[0], tup[1])
+
 
 class District:
     def __init__(self, id: int, name: str, area_id: int, migun_time: int):
@@ -23,12 +29,17 @@ class District:
         self.area_id = area_id
         self.migun_time = migun_time
 
+    @staticmethod
+    def from_tuple(tup: Sequence):
+        return District(tup[0], tup[1], tup[2], tup[3])
+
 
 class Channel:
-    def __init__(self, id: int, server_id: int | None, channel_lang: str):
+    def __init__(self, id: int, server_id: int | None, channel_lang: str, locations: list):
         self.id = id
         self.server_id = server_id
         self.channel_lang = channel_lang
+        self.locations = locations
 
 
 class Server:
@@ -49,7 +60,21 @@ class ChannelIterator:
         if res is None:
             self.cursor.close()
             raise StopIteration
-        return Channel(res[0], res[1], res[2])
+        return Channel(res[0], res[1], res[2], json.loads(res[3]))
+
+class DistrictIterator:
+    def __init__(self, cursor: mysql.connection.MySQLCursor):
+        self.cursor = cursor
+
+    def __iter__(self):
+        return self
+
+    def __next__(self) -> District:
+        res = self.cursor.fetchone()
+        if res is None:
+            self.cursor.close()
+            raise StopIteration
+        return District.from_tuple(res)
 
 
 class DBAccess:
@@ -75,7 +100,7 @@ class DBAccess:
                 break
             except mysql.Error as e:
                 self.connection = None
-                log.warning(f"Couldn't connect to db. This is attempt #{i}")
+                log.warning(f"Couldn't connect to db. This is attempt #{i}\n{e.msg}")
                 time.sleep(5)
 
         if self.connection is None:
@@ -121,7 +146,7 @@ class DBAccess:
             crsr.fetchall()
 
         if res is not None:
-            return Area(res[0], res[1])
+            return Area.from_tuple(res)
         else:
             return None
 
@@ -132,7 +157,7 @@ class DBAccess:
             crsr.fetchall()
 
         if res is not None:
-            return District(res[0], res[1], res[2], res[3])
+            return District.from_tuple(res)
         else:
             return None
 
@@ -157,7 +182,7 @@ class DBAccess:
             crsr.fetchall()
 
         if res is not None:
-            return Channel(res[0], res[1], res[2])
+            return Channel(res[0], res[1], res[2], json.loads(res[3]))
         else:
             return None
 
@@ -203,4 +228,60 @@ class DBAccess:
         if res is None:
             return None
 
-        return District(res[0], res[1], res[2], res[3])
+        return District.from_tuple(res)
+
+    def get_all_districts(self) -> Sequence:
+        with self.connection.cursor() as crsr:
+            crsr.execute('SELECT * FROM districts')
+            ret = crsr.fetchall()
+        return ret
+
+    def district_iterator(self) -> DistrictIterator:
+        crsr = self.connection.cursor()
+
+        crsr.execute('SELECT * FROM district')
+
+        return DistrictIterator(crsr)
+
+    def add_channel_district(self, channel_id: int, district_id: int):
+        with self.connection.cursor() as crsr:
+            crsr.execute("UPDATE channels "
+                         "SET locations = JSON_ARRAY_APPEND(locations, '$', %s) "
+                         "WHERE channel_id=%s;",
+                         (district_id, channel_id))
+        self.connection.commit()
+
+    def add_channel_districts(self, channel_id: int, district_ids: list[int]):
+        with self.connection.cursor() as crsr:
+            crsr.execute("UPDATE channels "
+                         "SET locations = JSON_MERGE_PATCH(locations, %s) "
+                         "WHERE channel_id=%s;",
+                         (json.dumps(district_ids), channel_id))
+        self.connection.commit()
+
+    def get_channel_districts(self, channel_id: int) -> list:
+        with self.connection.cursor() as crsr:
+            crsr.execute('SELECT locations '
+                         'FROM channels '
+                         'WHERE channel_id=%s;', (channel_id,))
+            districts = []
+            dist = crsr.fetchone()
+            while dist is not None:
+                districts.append(json.loads(dist[0]))
+                dist = crsr.fetchone()
+
+            return districts
+
+    def remove_channel_districts(self, channel_id: int, district_ids: list[int]):
+        with self.connection.cursor() as crsr:
+
+            districts = self.get_channel_districts(channel_id)
+
+            updated = [district for district in districts if district not in district_ids]
+
+            crsr.execute('UPDATE channels '
+                         'SET locations = %s '
+                         'WHERE channel_id = %s;',
+                         (json.dumps(updated), channel_id))
+
+        self.connection.commit()

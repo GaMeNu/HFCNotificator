@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS `hfc_db`.`channels` (
   `channel_id` BIGINT(8) UNSIGNED NOT NULL,
   `server_id` BIGINT(8) UNSIGNED NULL,
   `channel_lang` VARCHAR(15) NOT NULL,
-  `locations` JSON NULL,
+  `locations` JSON DEFAULT JSON_ARRAY(),
   PRIMARY KEY (`channel_id`),
   UNIQUE INDEX `channel_id_UNIQUE` (`channel_id` ASC) VISIBLE,
   CONSTRAINT `server_id`

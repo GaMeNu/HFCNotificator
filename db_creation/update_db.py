@@ -14,6 +14,7 @@ DB_PASSWORD = os.getenv('DB_PASSWORD')
 
 def updater_1_0_0(connection: mysql.connection.MySQLConnection) -> str:
     crsr = connection.cursor()
+    crsr.execute("ALTER TABLE `hfc_db`.`channels` DROP COLUMN IF EXISTS `locations`")
     crsr.execute("ALTER TABLE `hfc_db`.`channels` ADD COLUMN `locations` JSON NOT NULL DEFAULT ('[]');")
     crsr.close()
     return '1.0.1'
@@ -23,7 +24,7 @@ updaters = {
     '1.0.0': updater_1_0_0
 }
 
-current_version = input('Please enter current version:\n')
+current_version = input(f'Please enter current version (latest: {__version__}):\n')
 
 if current_version not in updaters.keys():
     print('Invalid version.')

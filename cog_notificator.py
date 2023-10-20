@@ -308,8 +308,17 @@ class Notificator(commands.Cog):
     @app_commands.command(name='unregister',
                           description='Stop a channel from receiving HFC alerts (Requires Manage Channels)')
     @app_commands.checks.has_permissions(manage_channels=True)
-    async def unregister_channel(self, intr: discord.Interaction):
+    async def unregister_channel(self, intr: discord.Interaction, confirmation: str=None):
         channel_id = intr.channel_id
+
+        conf_str = intr.user.name
+
+        if confirmation is None:
+            await intr.response.send_message(f'Are you sure you want to unregister the channel?\nThis action will also clear all related data.\n{md.b("Warning:")} this action cannot be reversed!\nPlease type your username ("{conf_str}") in the confirmation argument to confirm.')
+            return
+        if confirmation != conf_str:
+            await intr.response.send_message(f'Invalid confirmation string!')
+            return
 
         channel = self.db.get_channel(channel_id)
         if channel is None:
@@ -524,6 +533,13 @@ class Notificator(commands.Cog):
         }, districts_ls)
 
     @staticmethod
+    async def has_permission(intr: discord.Interaction) -> bool:
+        if intr.guild is not None and not intr.user.guild_permissions.manage_channels:
+            await intr.response.send_message('Error: You are missing the Manage Channels permission.')
+            return False
+        return True
+
+    @staticmethod
     def locations_page(data_list: list, page: int, res_in_page: int = 50) -> str:
         """
         Page starts at 0
@@ -560,7 +576,7 @@ class Notificator(commands.Cog):
 
         return page_content
 
-    @location_group.command(name='locations_list', description='Show the list of all available locations')
+    @location_group.command(name='list', description='Show the list of all available locations')
     async def locations_list(self, intr: discord.Interaction, page: int = 1):
 
         try:
@@ -578,9 +594,7 @@ class Notificator(commands.Cog):
     @location_group.command(name='add', description='Add a location(s) to the location list')
     @app_commands.describe(locations='A list of comma-separated Area IDs')
     async def location_add(self, intr: discord.Interaction, locations: str):
-
-        if intr.guild is not None and intr.user.guild_permissions.manage_channels is False:
-            await intr.response.send_message('Error: You are missing the Manage Channels permission.')
+        if not await self.has_permission(intr):
             return
 
         locations_ls = [word.strip() for word in locations.split(',')]
@@ -601,14 +615,19 @@ class Notificator(commands.Cog):
                 await intr.response.send_message('Could not find this channel. Are you sure it is registered?')
                 return
 
-        self.db.add_channel_districts(channel.id, location_ids)
+        try:
+            self.db.add_channel_districts(channel.id, location_ids)
+        except ValueError as e:
+            await intr.response.send_message(e.__str__())
+            return
+
+        await intr.response.send_message('Successfully added all IDs')
 
     @location_group.command(name='remove', description='Remove a location(s) to the location list')
     @app_commands.describe(locations='A list of comma-separated Area IDs')
     async def location_remove(self, intr: discord.Interaction, locations: str):
 
-        if intr.guild is not None and intr.user.guild_permissions.manage_channels is False:
-            await intr.response.send_message('Error: You are missing the Manage Channels permission.')
+        if not await self.has_permission(intr):
             return
 
         locations_ls = [word.strip() for word in locations.split(',')]
@@ -630,6 +649,34 @@ class Notificator(commands.Cog):
                 return
 
         self.db.remove_channel_districts(channel.id, location_ids)
+        await intr.response.send_message('Successfully removed all IDs')
+
+    @location_group.command(name='clear', description='Clear all registered locations (get alerts on all locations)')
+    async def location_clear(self, intr: discord.Interaction, confirmation: str = None):
+
+        if not await self.has_permission(intr):
+            return
+
+        conf_str = intr.user.name
+
+        channel_id = intr.channel_id
+
+        channel = self.db.get_channel(channel_id)
+        if channel is None:
+            channel = self.db.get_channel(intr.user.id)
+            if channel is None:
+                await intr.response.send_message('Could not find this channel. Are you sure it is registered?')
+                return
+
+        if confirmation is None:
+            await intr.response.send_message(f'Are you sure you want to clear all registered locations?\n{md.b("Warning:")} this action cannot be reversed!\nPlease type your username ("{conf_str}") in the confirmation argument to confirm.')
+            return
+        if confirmation != conf_str:
+            await intr.response.send_message(f'Invalid confirmation string!')
+            return
+
+        self.db.clear_channel_districts(channel.id)
+        await intr.response.send_message(f'Cleared all registered locations.\nChannel will now receive alerts from every location.')
 
     @location_group.command(name='registered', description='List all locations registered to this channel')
     async def location_registered(self, intr: discord.Interaction, page: int = 1):
@@ -643,7 +690,17 @@ class Notificator(commands.Cog):
                 await intr.response.send_message('Could not find this channel. Are you sure it is registered?')
                 return
 
-        districts = self.db.get_channel_districts(chanel.id)
+        # Congrats! It's a MESS!
+        # This code is so ugly, but basically
+        #
+        # It gets a list of all of a channel's districts
+        # Converts it to a tuple form in which
+        # district_tuple = (district_id: int, district_name: str, area_id: int, migun_time: int)
+        # Then it sorts it with the key being district_name
+        districts = sorted([self.db.get_district(district_id).to_tuple()
+                            for district_id
+                            in self.db.get_channel_district_ids(channel.id)],
+                           key=lambda tup: tup[1])
 
         page = self.locations_page(districts, page-1)
 

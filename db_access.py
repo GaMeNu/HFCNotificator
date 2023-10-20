@@ -33,6 +33,9 @@ class District:
     def from_tuple(tup: Sequence):
         return District(tup[0], tup[1], tup[2], tup[3])
 
+    def to_tuple(self) -> tuple:
+        return self.id, self.name, self.area_id, self.migun_time
+
 
 class Channel:
     def __init__(self, id: int, server_id: int | None, channel_lang: str, locations: list):
@@ -245,6 +248,13 @@ class DBAccess:
 
     def add_channel_district(self, channel_id: int, district_id: int):
         with self.connection.cursor() as crsr:
+            crsr.execute('SELECT * FROM districts WHERE district_id=%s', (district_id,))
+            res = crsr.fetchone()
+            crsr.fetchall()
+        if res is None:
+            raise ValueError(f'Invalid District ID {district_id}')
+
+        with self.connection.cursor() as crsr:
             crsr.execute("UPDATE channels "
                          "SET locations = JSON_ARRAY_APPEND(locations, '$', %s) "
                          "WHERE channel_id=%s;",
@@ -253,29 +263,42 @@ class DBAccess:
 
     def add_channel_districts(self, channel_id: int, district_ids: list[int]):
         with self.connection.cursor() as crsr:
+            # Sorry for the messy statement. I'm lazy and it's 02:13 rn
+            crsr.execute(f"SELECT * FROM districts WHERE district_id IN ({','.join(['%s'] * len(district_ids))})", tuple(district_ids))
+            res = crsr.fetchall()
+
+        if len(district_ids) > len(res):
+            raise ValueError('Received invalid district IDs')
+
+        # Sorry for this way of doing things (3 DB queries omg)
+        # JSON_MERGE_PATCH kept overwriting the existing data
+        # while JSON_MERGE_PRESERVE did not remove duplicates
+        dists = self.get_channel_district_ids(channel_id)
+        updated = [district for district in district_ids if district not in dists]
+
+        with self.connection.cursor() as crsr:
+
             crsr.execute("UPDATE channels "
-                         "SET locations = JSON_MERGE_PATCH(locations, %s) "
+                         "SET locations = JSON_MERGE_PRESERVE(locations, %s) "
                          "WHERE channel_id=%s;",
-                         (json.dumps(district_ids), channel_id))
+                         (json.dumps(updated), channel_id))
         self.connection.commit()
 
-    def get_channel_districts(self, channel_id: int) -> list:
+    def get_channel_district_ids(self, channel_id: int) -> list:
         with self.connection.cursor() as crsr:
             crsr.execute('SELECT locations '
                          'FROM channels '
                          'WHERE channel_id=%s;', (channel_id,))
-            districts = []
             dist = crsr.fetchone()
-            while dist is not None:
-                districts.append(json.loads(dist[0]))
-                dist = crsr.fetchone()
+            crsr.fetchall()
 
-            return districts
+        districts = json.loads(dist[0])
+        return districts
 
     def remove_channel_districts(self, channel_id: int, district_ids: list[int]):
         with self.connection.cursor() as crsr:
 
-            districts = self.get_channel_districts(channel_id)
+            districts = self.get_channel_district_ids(channel_id)
 
             updated = [district for district in districts if district not in district_ids]
 
@@ -283,5 +306,14 @@ class DBAccess:
                          'SET locations = %s '
                          'WHERE channel_id = %s;',
                          (json.dumps(updated), channel_id))
+
+        self.connection.commit()
+
+    def clear_channel_districts(self, channel_id: int):
+        with self.connection.cursor() as crsr:
+            crsr.execute('UPDATE channels '
+                         'SET locations = JSON_ARRAY() '
+                         'WHERE channel_id = %s;',
+                         (channel_id,))
 
         self.connection.commit()

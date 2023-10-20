@@ -2,10 +2,10 @@ import os
 
 from dotenv import load_dotenv
 
-import db_creation
+from db_creation import __version__
 import mysql.connector as mysql
 
-target_version = db_creation.__version__
+target_version = __version__
 
 load_dotenv()
 DB_USERNAME = os.getenv('DB_USERNAME')

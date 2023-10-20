@@ -6,6 +6,7 @@ from typing import Sequence
 
 from dotenv import load_dotenv
 from mysql import connector as mysql
+from mysql.connector.abstracts import MySQLCursorAbstract
 
 load_dotenv()
 DB_USERNAME = os.getenv('DB_USERNAME')
@@ -44,6 +45,10 @@ class Channel:
         self.channel_lang = channel_lang
         self.locations = locations
 
+    @staticmethod
+    def from_tuple(tup: tuple):
+        return Channel(tup[0], tup[1], tup[2], json.loads(tup[3]))
+
 
 class Server:
     def __init__(self, id: int, lang: str):
@@ -52,7 +57,7 @@ class Server:
 
 
 class ChannelIterator:
-    def __init__(self, cursor: mysql.connection.MySQLCursor):
+    def __init__(self, cursor: MySQLCursorAbstract):
         self.cursor = cursor
 
     def __iter__(self):
@@ -63,10 +68,11 @@ class ChannelIterator:
         if res is None:
             self.cursor.close()
             raise StopIteration
-        return Channel(res[0], res[1], res[2], json.loads(res[3]))
+        return Channel.from_tuple(res)
+
 
 class DistrictIterator:
-    def __init__(self, cursor: mysql.connection.MySQLCursor):
+    def __init__(self, cursor: MySQLCursorAbstract):
         self.cursor = cursor
 
     def __iter__(self):
@@ -146,7 +152,7 @@ class DBAccess:
         with self.connection.cursor() as crsr:
             crsr.execute('SELECT * FROM areas WHERE area_id=%s', (id,))
             res = crsr.fetchone()
-            crsr.fetchall()
+            crsr.nextset()
 
         if res is not None:
             return Area.from_tuple(res)
@@ -157,7 +163,7 @@ class DBAccess:
         with self.connection.cursor() as crsr:
             crsr.execute('SELECT * FROM districts WHERE district_id=%s', (id,))
             res = crsr.fetchone()
-            crsr.fetchall()
+            crsr.nextset()
 
         if res is not None:
             return District.from_tuple(res)
@@ -171,7 +177,7 @@ class DBAccess:
         with self.connection.cursor() as crsr:
             crsr.execute('SELECT * FROM servers WHERE server_id=%s', (id,))
             res = crsr.fetchone()
-            crsr.fetchall()
+            crsr.nextset()
 
         if res is not None:
             return Server(res[0], res[1])
@@ -182,10 +188,10 @@ class DBAccess:
         with self.connection.cursor() as crsr:
             crsr.execute('SELECT * FROM channels WHERE channel_id=%s', (id,))
             res = crsr.fetchone()
-            crsr.fetchall()
+            crsr.nextset()
 
         if res is not None:
-            return Channel(res[0], res[1], res[2], json.loads(res[3]))
+            return Channel.from_tuple(res)
         else:
             return None
 
@@ -193,11 +199,18 @@ class DBAccess:
         return self.get_server(channel.server_id)
 
     def channel_iterator(self):
-        crsr = self.connection.cursor()
+        with self.connection.cursor() as crsr:
 
-        crsr.execute('SELECT * FROM channels')
+            crsr.execute('SELECT * FROM channels')
 
-        return ChannelIterator(crsr)
+            return ChannelIterator(crsr)
+
+    def get_all_channels(self):
+        with self.connection.cursor() as crsr:
+            crsr.execute('SELECT * FROM channels')
+            res = crsr.fetchall()
+
+        return res
 
     def remove_channel(self, id: int):
         print(id)
@@ -226,7 +239,7 @@ class DBAccess:
         with self.connection.cursor() as crsr:
             crsr.execute('SELECT * FROM districts WHERE district_name=%s', (name,))
             res = crsr.fetchone()
-            crsr.fetchall()
+            crsr.nextset()
 
         if res is None:
             return None
@@ -240,17 +253,16 @@ class DBAccess:
         return ret
 
     def district_iterator(self) -> DistrictIterator:
-        crsr = self.connection.cursor()
+        with self.connection.cursor() as crsr:
+            crsr.execute('SELECT * FROM district')
 
-        crsr.execute('SELECT * FROM district')
-
-        return DistrictIterator(crsr)
+            return DistrictIterator(crsr)
 
     def add_channel_district(self, channel_id: int, district_id: int):
         with self.connection.cursor() as crsr:
             crsr.execute('SELECT * FROM districts WHERE district_id=%s', (district_id,))
             res = crsr.fetchone()
-            crsr.fetchall()
+            crsr.nextset()
         if res is None:
             raise ValueError(f'Invalid District ID {district_id}')
 
@@ -286,11 +298,13 @@ class DBAccess:
 
     def get_channel_district_ids(self, channel_id: int) -> list:
         with self.connection.cursor() as crsr:
+
+            crsr.nextset()
             crsr.execute('SELECT locations '
                          'FROM channels '
                          'WHERE channel_id=%s;', (channel_id,))
             dist = crsr.fetchone()
-            crsr.fetchall()
+            crsr.nextset()
 
         districts = json.loads(dist[0])
         return districts

@@ -32,3 +32,6 @@ if current_version not in updaters.keys():
 with mysql.connect(host='localhost', user=DB_USERNAME, password=DB_PASSWORD) as connection:
     while current_version != target_version:
         current_version = updaters[current_version](connection)
+        print(f'Updated DB to version {current_version}')
+
+print(f'DB is now at target version!')

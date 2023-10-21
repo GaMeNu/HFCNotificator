@@ -577,7 +577,7 @@ class Notificator(commands.Cog):
         if page < 0:
             raise ValueError('Page number is too low.')
 
-        page_content = f'Page {md.b(f"{page + 1}/{max_page}")}\n\n<District ID> - <District name>\n\n'
+        page_content = f'Page {md.b(f"{page + 1}/{max_page}")}\n\n'
 
         start_i = page * res_in_page
         end_i = min(start_i + res_in_page, dist_len)
@@ -586,7 +586,7 @@ class Notificator(commands.Cog):
 
         return page_content
 
-    @location_group.command(name='list', description='Show the list of all available locations')
+    @location_group.command(name='list', description='Show the list of all available locations with matching IDs, sorted alphabetically')
     async def locations_list(self, intr: discord.Interaction, page: int = 1):
 
         try:
@@ -691,7 +691,7 @@ class Notificator(commands.Cog):
         await intr.response.send_message(
             f'Cleared all registered locations.\nChannel will now receive alerts from every location.')
 
-    @location_group.command(name='registered', description='List all locations registered to this channel')
+    @location_group.command(name='registered', description='List all locations registered to this channel, by IDs and names.')
     async def location_registered(self, intr: discord.Interaction, page: int = 1):
 
         channel_id = intr.channel_id

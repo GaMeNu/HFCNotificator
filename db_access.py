@@ -199,6 +199,13 @@ class DBAccess:
         return self.get_server(channel.server_id)
 
     def channel_iterator(self):
+        """
+        This function is DEPRECATED!
+
+        Please use get_all_channels() instead.
+
+        Reason: Cannot create more queries while an iterator is active due to unread results.
+        """
         with self.connection.cursor() as crsr:
 
             crsr.execute('SELECT * FROM channels')
@@ -253,6 +260,13 @@ class DBAccess:
         return ret
 
     def district_iterator(self) -> DistrictIterator:
+        """
+        This function is DEPRECATED!
+
+        Please use get_all_districts() instead.
+
+        Reason: Cannot create more queries while an iterator is active due to unread results.
+        """
         with self.connection.cursor() as crsr:
             crsr.execute('SELECT * FROM district')
 
@@ -331,3 +345,7 @@ class DBAccess:
                          (channel_id,))
 
         self.connection.commit()
+
+    def is_registered_channel(self, channel_id: int) -> bool:
+        return self.get_channel(channel_id) is not None
+

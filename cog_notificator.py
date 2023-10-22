@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+from typing import Self
 
 import requests
 
@@ -67,29 +68,76 @@ class Alert:
         self.districts = districts
         self.description = desc
 
-    @staticmethod
-    def from_dict(data: dict):
-        return Alert(int(data.get('id', '0')),
-                     int(data.get('cat', '0')),
-                     data.get('title'),
-                     data.get('data'),
-                     data.get('desc'))
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(int(data.get('id', '0')),
+                   int(data.get('cat', '0')),
+                   data.get('title'),
+                   data.get('data'),
+                   data.get('desc'))
 
 
 class AlertEmbed:
 
-    def __init__(self, district: db_access.District, description: str):
+    def __init__(self, alert: Alert | dict,  district: db_access.District | str):
+        """
+        Initiating the AlertEmbed class directly is equivalent to AlertEmbed.generic_alert, but is not recommended.
+
+        Please use AlertEmbed.generic_alert instead.
+        """
         self.embed = discord.Embed(color=discord.Color.from_str('#FF0000'))
         self.district = district
+        if isinstance(alert, dict):
+            self.alert = Alert.from_dict(alert)
+        else:
+            self.alert = alert
 
-        self.embed.title = f'התראה ב{district}'
+        self.embed.title = f'התראה ב{self.district}'
         self.embed.add_field(name='נכון ל', value=datetime.datetime.now().strftime("%H:%M:%S\n%d/%m/%Y"), inline=False)
-        self.embed.add_field(name='מידע נוסף', value=description)
+        self.embed.add_field(name='מידע נוסף', value=self.alert.description)
 
+    @classmethod
+    def generic_alert(cls, alert: Alert | dict, district: db_access.District | str) -> Self:
+        ret_alem = cls(alert, district)
+        return ret_alem
 
-    @staticmethod
-    def generic_alert(district: db_access.District, description: str):
-        ret_alem = AlertEmbed(district, description)
+    @classmethod
+    def missile_alert(cls, alert: Alert | dict, district: db_access.District | str) -> Self:
+        ret_alem = cls.generic_alert(alert, district)
+
+        if (not isinstance(district, str)) and (district.migun_time is not None):
+            ret_alem.embed.set_field_at(index=1, name='זמן מיגון', value=f'{district.migun_time} שניות', inline=False)
+            return ret_alem
+
+        ret_alem.embed.set_field_at(index=1, name='זמן מיגון', value='שגיאה באחזרת המידע', inline=False)
+        return ret_alem
+
+    @classmethod
+    def auto_alert(cls, alert: Alert | dict, district: db_access.District | str) -> Self:
+        """
+        Tired of having to CHOOSE an alert type all the time? Well this is JUST for you!
+
+        Introducing... auto_alert! Just init it like any other alert, and it will return the fitting alert right then and there*!
+
+        *"then and there" does not include any computer, end-user, developer, or any other type of tomfoolery.
+
+        (Hopefully now I'll never have to write documentation again >:) )
+
+        :param alert: Alert object or alert dict.
+        :param district: District object (from db_access)
+        :return: AlertEmbed object
+        """
+        if isinstance(alert, dict):
+            alert_obj = Alert.from_dict(alert)
+        else:
+            alert_obj = alert
+
+        match alert_obj.category:
+            case 1:
+                return cls.missile_alert(alert_obj, district)
+            case _:
+                return cls.generic_alert(alert_obj, district)
+
 
 
 
@@ -242,39 +290,6 @@ class Notificator(commands.Cog):
             self.check_for_updates.start()
 
     @staticmethod
-    def generate_alert_embed(alert_object: Alert, district: str, arrival_time: int | None, time: str,
-                             lang: str, district_id: int) -> DistrictEmbedTemp:
-
-        """
-        Generate alert embed
-        :param alert_object: Alert content
-        :param district: District alert
-        :param arrival_time: Time to get to a safe space
-        :param time: Alert Time
-        :param lang: Alert language
-        :param district_id: IDK what this param doing; Me neither LOL
-        :return: Alert embed for current alert
-        """
-        # TODO: fix tha param description
-        # TODO: fix this entire function
-        # TODO: Using 1 generate alert function is probably bad, should probably split into a utility class
-        e = DistrictEmbedTemp(district_id=district_id, color=discord.Color.from_str('#FF0000'))
-        e.title = f'התראה ב{district}'
-        e.add_field(name=district, value=alert_object.title, inline=False)
-        match alert_object.category:
-            case 1:
-                if arrival_time is not None:
-                    e.add_field(name='זמן מיגון', value=f'{arrival_time} שניות', inline=False)
-                else:
-                    e.add_field(name='זמן מיגון', value='שגיאה באחזרת המידע', inline=False)
-
-            case _:
-                pass
-        e.add_field(name='נכון ל', value=time, inline=False)
-        e.add_field(name='מידע נוסף', value=alert_object.description)
-        return e
-
-    @staticmethod
     def hfc_button_view() -> discord.ui.View:
         button = discord.ui.Button(
             style=discord.ButtonStyle.link,
@@ -292,44 +307,17 @@ class Notificator(commands.Cog):
         :param new_districts: Currently active districts (districts that were not already active)
         :return:
         """
-        try:
-            alert_history = AlertReqs.request_history_json()[0:100]
-        except requests.exceptions.Timeout as error:
-            self.log.error(f'Request timed out: {error}')
-            alert_history = None
         self.log.info(f'Sending alerts to channels')
 
-        embed_ls: list[DistrictEmbedTemp] = []
-
-        new_alert = Alert.from_dict(alert_data)
+        embed_ls: list[AlertEmbed] = []
 
         for district in new_districts:
-            district_data = self.db.get_district_by_name(district)  # DB
-            alert_time = datetime.datetime.now()  # .strftime()
+            district_data = self.db.get_district_by_name(district)
 
-            # TODO: THIS REQUIRES SIMPLIFICATION ASAP
-            if alert_history is not None:
-                for alert in alert_history:
-                    if alert["data"] == district:
-                        new_time = datetime.datetime.strptime(alert["alertDate"], "%Y-%m-%d %H:%M:%S")
-                        time_diff = abs(alert_time - new_time)
-                        # Check if new time is withing 5 minutes
-                        if time_diff <= datetime.timedelta(minutes=1):
-                            # We have a match. Assign and stop looking
-                            alert_time = new_time
-                            break
-            else:
-                alert_time = datetime.datetime.now()
-
-                # it's not within 5 minutes, keep looking.
-                # DF Code ruined me, and now I overuse break and continue.
-
-            alert_time_str = alert_time.strftime("%H:%M:%S\n%d/%m/%Y")
             if district_data is not None:
-                embed_ls.append(Notificator.generate_alert_embed(new_alert, district, district_data.migun_time,
-                                                                 alert_time_str, 'he', district_data.district_id))
+                embed_ls.append(AlertEmbed.auto_alert(alert_data, district_data))
             else:
-                embed_ls.append(Notificator.generate_alert_embed(new_alert, district, None, alert_time_str, 'he', district_data.id))
+                embed_ls.append(AlertEmbed.auto_alert(alert_data, district))
 
         for channel_tup in self.db.get_all_channels():
             channel = Channel.from_tuple(channel_tup)
@@ -338,15 +326,13 @@ class Notificator(commands.Cog):
             else:
                 dc_ch = self.bot.get_user(channel.district_id)
 
-            channel_districts = self.db.get_channel_district_ids(channel.district_id)
-
             for emb in embed_ls:
                 if dc_ch is None:
                     continue
                 if len(channel.locations) != 0 and emb.district_id not in channel.locations:
                     continue
                 try:
-                    await dc_ch.send(embed=emb, view=self.hfc_button_view())
+                    await dc_ch.send(embed=emb.embed, view=self.hfc_button_view())
                     await asyncio.sleep(0.01)
                 except BaseException as e:
                     self.log.warning(f'Failed to send alert in channel id={channel.district_id}:\n'

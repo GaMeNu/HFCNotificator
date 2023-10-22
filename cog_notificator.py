@@ -235,8 +235,6 @@ class Notificator(commands.Cog):
             return False
         return True
 
-
-
     @tasks.loop(seconds=1)
     async def check_for_updates(self):
         try:

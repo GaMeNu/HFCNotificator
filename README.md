@@ -27,6 +27,8 @@ Get the latest alerts from up to a certain time back.
 ## Self-hosting
 ### Requirements
 #### Required PyPI packages (run each with `pip install`)
+**Note:** as of 2023-10-23, discord.py seems to not install properly for Python 3.11 and above.
+The fix we've found is to first install the beta version of package `aiohttp` separately (`aiohttp==3.9.0b0`).
 ```
 discord.py
 mysql-connector-python

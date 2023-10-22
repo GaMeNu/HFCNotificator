@@ -138,9 +138,10 @@ class Notificator(commands.Cog):
 
     def in_registered_channel(self, intr: discord.Interaction) -> bool | None:
         """
-
-        :param intr: discord command interaction
-        :return: True - is a registered server channel, False - is a registered DM, None - was not found (is not registered)
+        an info about current channel
+        :param intr: Command interaction from discord
+        :return: Boolean:
+        True - is a registered server channel, False - is a registered DM, None - was not found (may not be registered)
         """
 
         # OPTIONS:
@@ -285,6 +286,12 @@ class Notificator(commands.Cog):
         return view
 
     async def send_new_alert(self, alert_data: dict, new_districts: list[str]):
+        """
+        Push an alert to all registered channels
+        :param alert_data: Alert data dict (see test_alert for format)
+        :param new_districts: Currently active districts (districts that were not already active)
+        :return:
+        """
         try:
             alert_history = AlertReqs.request_history_json()[0:100]
         except requests.exceptions.Timeout as error:
@@ -419,10 +426,6 @@ class Notificator(commands.Cog):
         if confirmation != conf_str:
             await intr.response.send_message(f'Invalid confirmation string!')
             return
-
-        channel = self.db.get_channel(channel_id)
-        if channel is None:
-            channel = self.db.get_channel(intr.user.id)
 
         await self.attempt_unregistration(intr, channel)
 
@@ -604,6 +607,15 @@ class Notificator(commands.Cog):
                          desc: str = 'התעלמו מהתראה זו',
                          districts: str = 'בדיקה',
                          cat: int = 99):
+        """
+        A function to send a test alert
+        :param intr: Command interaction from discord
+        :param title: Title of the alert
+        :param desc: Description of the alert
+        :param districts: Districts of the alert
+        :param cat: Category of the alert
+        :return:
+        """
         if intr.user.id != AUTHOR_ID:
             await intr.response.send_message('No access.')
             return

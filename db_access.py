@@ -25,7 +25,7 @@ class Area:
 
 class District:
     def __init__(self, id: int, name: str, area_id: int, migun_time: int):
-        self.id = id
+        self.district_id = id
         self.name = name
         self.area_id = area_id
         self.migun_time = migun_time
@@ -35,7 +35,7 @@ class District:
         return District(tup[0], tup[1], tup[2], tup[3])
 
     def to_tuple(self) -> tuple:
-        return self.id, self.name, self.area_id, self.migun_time
+        return self.district_id, self.name, self.area_id, self.migun_time
 
 
 class Channel:
@@ -206,6 +206,8 @@ class DBAccess:
 
         Reason: Cannot create more queries while an iterator is active due to unread results.
         """
+        raise NotImplementedError("This function has been deprecated!")
+
         with self.connection.cursor() as crsr:
 
             crsr.execute('SELECT * FROM channels')
@@ -220,7 +222,6 @@ class DBAccess:
         return res
 
     def remove_channel(self, id: int):
-        print(id)
         with self.connection.cursor() as crsr:
             crsr.execute('DELETE FROM channels WHERE channel_id=%s', (id,))
         self.connection.commit()
@@ -267,6 +268,8 @@ class DBAccess:
 
         Reason: Cannot create more queries while an iterator is active due to unread results.
         """
+        raise NotImplementedError("This function has been deprecated!")
+
         with self.connection.cursor() as crsr:
             crsr.execute('SELECT * FROM district')
 
@@ -312,7 +315,6 @@ class DBAccess:
 
     def get_channel_district_ids(self, channel_id: int) -> list:
         with self.connection.cursor() as crsr:
-
             crsr.nextset()
             crsr.execute('SELECT locations '
                          'FROM channels '

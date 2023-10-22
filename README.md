@@ -30,6 +30,7 @@ Get the latest alerts from up to a certain time back.
 ```
 discord.py
 mysql-connector-python
+requests
 python-dotenv
 ```
 #### Other requirements

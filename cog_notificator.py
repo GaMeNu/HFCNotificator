@@ -88,6 +88,7 @@ class DistrictEmbed(discord.Embed):
         self.district_id = district_id
         super().__init__(**kwargs)
 
+
 # noinspection PyUnresolvedReferences
 class Notificator(commands.Cog):
     location_group = app_commands.Group(name='locations',

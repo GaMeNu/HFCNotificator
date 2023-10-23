@@ -15,14 +15,26 @@ Alternatively, you can DM the bot to receive alerts directly to your DMs!
 Please do note that the bot instance listed here is hosted on a private machine, and may be a bit slow.
 
 ## Command documentation
-### /about
+#### /about
 Get some info about the bot
-### /register
+#### /register
 Run in a channel to register it to receive alerts
-### /unregister
+#### /unregister
 Run in a registered channel to stop it from receiving alerts
-### /latest \<time\> \<unit\> \[page\]
+#### /latest \<time\> \<unit\> \[page\]
 Get the latest alerts from up to a certain time back.
+
+### Location commands
+#### /locations add \<id\>
+Register a location to receive alerts from
+#### /locations remove \<id\>
+Remove a location to receive alerts from
+#### /locations clear \<id\>
+Clear all registered locations (Get alerts from everywhere)
+#### /locations list \[page\]
+List all valid locations
+#### /locations registered \[page\]
+List all registered locations
 
 ## Self-hosting
 ### Requirements

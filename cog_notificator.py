@@ -139,17 +139,6 @@ class AlertEmbed:
                 return cls.generic_alert(alert_obj, district)
 
 
-
-
-
-
-
-class DistrictEmbedTemp(discord.Embed):
-    def __init__(self, district_id: int, **kwargs):
-        self.district_id = district_id
-        super().__init__(**kwargs)
-
-
 # noinspection PyUnresolvedReferences
 class Notificator(commands.Cog):
     location_group = app_commands.Group(name='locations',

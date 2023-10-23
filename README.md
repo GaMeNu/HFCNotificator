@@ -39,7 +39,7 @@ List all registered locations
 ## Self-hosting
 ### Requirements
 #### Required PyPI packages (run each with `pip install`)
-**Note:** On Windows you will have to write `python3 -m pip` instead of `pip` at the beginning of pip install commands
+**Note:** On Windows you will have to write `python -m pip` instead of `pip` at the beginning of pip install commands
 
 **Note:** as of 2023-10-23, discord.py seems to not install properly for Python 3.11 and above.
 The fix we've found is to first install the beta version of package `aiohttp` separately (`aiohttp==3.9.0b0`).

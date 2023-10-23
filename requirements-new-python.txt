@@ -1,0 +1,5 @@
+aiohttp==3.9.0b0
+discord.py
+mysql-connector-python
+requests
+python-dotenv

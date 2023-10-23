@@ -47,6 +47,12 @@ mysql-connector-python
 requests
 python-dotenv
 ```
+
+Also you can use the requirements files:
+```
+requirements.txt
+requirements-new-python.txt
+```
 #### Other requirements
 MySQL Server: https://dev.mysql.com/downloads/mysql/
 

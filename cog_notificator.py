@@ -79,7 +79,7 @@ class Alert:
 
 class AlertEmbed:
 
-    def __init__(self, alert: Alert | dict,  district: db_access.District | str):
+    def __init__(self, alert: Alert | dict,  district: db_access.AreaDistrict | str):
         """
         Initiating the AlertEmbed class directly is equivalent to AlertEmbed.generic_alert, but is not recommended.
 
@@ -92,28 +92,34 @@ class AlertEmbed:
         else:
             self.alert = alert
 
-        self.embed.title = f'התראה ב{self.district}'
+        self.embed.title = f'התראה ב{self.district.name}'
+
+        if isinstance(self.district, AreaDistrict):
+            self.embed.add_field(name=self.alert.title, value=f'איזור {self.district.area.name}')
+        else:
+            self.embed.add_field(name=self.alert.title, value=f'איזור {self.district}')
+
         self.embed.add_field(name='נכון ל', value=datetime.datetime.now().strftime("%H:%M:%S\n%d/%m/%Y"), inline=False)
         self.embed.add_field(name='מידע נוסף', value=self.alert.description)
 
     @classmethod
-    def generic_alert(cls, alert: Alert | dict, district: db_access.District | str) -> Self:
+    def generic_alert(cls, alert: Alert | dict, district: db_access.AreaDistrict | str) -> Self:
         ret_alem = cls(alert, district)
         return ret_alem
 
     @classmethod
-    def missile_alert(cls, alert: Alert | dict, district: db_access.District | str) -> Self:
+    def missile_alert(cls, alert: Alert | dict, district: db_access.AreaDistrict | str) -> Self:
         ret_alem = cls.generic_alert(alert, district)
 
         if (not isinstance(district, str)) and (district.migun_time is not None):
-            ret_alem.embed.set_field_at(index=1, name='זמן מיגון', value=f'{district.migun_time} שניות', inline=False)
+            ret_alem.embed.insert_field_at(index=1, name='זמן מיגון', value=f'{district.migun_time} שניות', inline=False)
             return ret_alem
 
-        ret_alem.embed.set_field_at(index=1, name='זמן מיגון', value='שגיאה באחזרת המידע', inline=False)
+        ret_alem.embed.insert_field_at(index=1, name='זמן מיגון', value='שגיאה באחזרת המידע', inline=False)
         return ret_alem
 
     @classmethod
-    def auto_alert(cls, alert: Alert | dict, district: db_access.District | str) -> Self:
+    def auto_alert(cls, alert: Alert | dict, district: db_access.AreaDistrict | str) -> Self:
         """
         Tired of having to CHOOSE an alert type all the time? Well this is JUST for you!
 
@@ -302,21 +308,21 @@ class Notificator(commands.Cog):
             district_data = self.db.get_district_by_name(district)
 
             if district_data is not None:
-                embed_ls.append(AlertEmbed.auto_alert(alert_data, district_data))
+                embed_ls.append(AlertEmbed.auto_alert(alert_data, AreaDistrict.from_district(district_data, self.db.get_area(district_data.area_id))))
             else:
                 embed_ls.append(AlertEmbed.auto_alert(alert_data, district))
 
         for channel_tup in self.db.get_all_channels():
             channel = Channel.from_tuple(channel_tup)
             if channel.server_id is not None:
-                dc_ch = self.bot.get_channel(channel.district_id)
+                dc_ch = self.bot.get_channel(channel.id)
             else:
-                dc_ch = self.bot.get_user(channel.district_id)
+                dc_ch = self.bot.get_user(channel.id)
 
             for emb in embed_ls:
                 if dc_ch is None:
                     continue
-                if len(channel.locations) != 0 and emb.district_id not in channel.locations:
+                if len(channel.locations) != 0 and emb.district.district_id not in channel.locations:
                     continue
                 try:
                     await dc_ch.send(embed=emb.embed, view=self.hfc_button_view())

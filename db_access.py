@@ -38,6 +38,16 @@ class District:
         return self.district_id, self.name, self.area_id, self.migun_time
 
 
+class AreaDistrict(District):
+    def __init__(self, id: int, name: str, area_id: int, migun_time: int, area: Area):
+        super().__init__(id, name, area_id, migun_time)
+        self.area = area
+
+    @classmethod
+    def from_district(cls, district: District, area: Area):
+        return cls(district.district_id, district.name, district.area_id, district.migun_time, area)
+
+
 class Channel:
     def __init__(self, id: int, server_id: int | None, channel_lang: str, locations: list):
         self.id = id

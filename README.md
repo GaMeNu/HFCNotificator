@@ -48,11 +48,18 @@ requests
 python-dotenv
 ```
 
-Also you can use the requirements files:
+You can also use the requirements files (`pip install -r`):
+
+Python 3.10 and below:
 ```
 requirements.txt
+```
+
+Python 3.11 and above:
+```
 requirements-new-python.txt
 ```
+
 #### Other requirements
 MySQL Server: https://dev.mysql.com/downloads/mysql/
 

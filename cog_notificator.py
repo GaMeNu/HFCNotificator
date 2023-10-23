@@ -92,12 +92,13 @@ class AlertEmbed:
         else:
             self.alert = alert
 
-        self.embed.title = f'התראה ב{self.district.name}'
-
         if isinstance(self.district, AreaDistrict):
+            self.embed.title = f'התראה ב{self.district.name}'
             self.embed.add_field(name=self.alert.title, value=f'איזור {self.district.area.name}')
+
         else:
-            self.embed.add_field(name=self.alert.title, value=f'איזור {self.district}')
+            self.embed.title = f'התראה ב{self.district}'
+            self.embed.add_field(name=self.alert.title, value='')
 
         self.embed.add_field(name='נכון ל', value=datetime.datetime.now().strftime("%H:%M:%S\n%d/%m/%Y"), inline=False)
         self.embed.add_field(name='מידע נוסף', value=self.alert.description)
@@ -322,7 +323,7 @@ class Notificator(commands.Cog):
             for emb in embed_ls:
                 if dc_ch is None:
                     continue
-                if len(channel.locations) != 0 and emb.district.district_id not in channel.locations:
+                if len(channel.locations) != 0 and isinstance(emb.district, AreaDistrict) and (emb.district.district_id not in channel.locations):
                     continue
                 try:
                     await dc_ch.send(embed=emb.embed, view=self.hfc_button_view())

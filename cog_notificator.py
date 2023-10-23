@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-from typing import Self
 
 import requests
 
@@ -104,12 +103,12 @@ class AlertEmbed:
         self.embed.add_field(name='מידע נוסף', value=self.alert.description)
 
     @classmethod
-    def generic_alert(cls, alert: Alert | dict, district: db_access.AreaDistrict | str) -> Self:
+    def generic_alert(cls, alert: Alert | dict, district: db_access.AreaDistrict | str):
         ret_alem = cls(alert, district)
         return ret_alem
 
     @classmethod
-    def missile_alert(cls, alert: Alert | dict, district: db_access.AreaDistrict | str) -> Self:
+    def missile_alert(cls, alert: Alert | dict, district: db_access.AreaDistrict | str):
         ret_alem = cls.generic_alert(alert, district)
 
         if (not isinstance(district, str)) and (district.migun_time is not None):
@@ -120,7 +119,7 @@ class AlertEmbed:
         return ret_alem
 
     @classmethod
-    def auto_alert(cls, alert: Alert | dict, district: db_access.AreaDistrict | str) -> Self:
+    def auto_alert(cls, alert: Alert | dict, district: db_access.AreaDistrict | str):
         """
         Tired of having to CHOOSE an alert type all the time? Well this is JUST for you!
 

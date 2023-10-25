@@ -270,6 +270,15 @@ class DBAccess:
             ret = crsr.fetchall()
         return ret
 
+    def search_districts(self, *tokens: str) -> Sequence:
+        with self.connection.cursor() as crsr:
+            query = 'SELECT * FROM districts WHERE '
+            query += ' AND '.join(["district_name LIKE %s" for _ in tokens])
+            query += ';'
+            crsr.execute(query, [f'%{token}%' for token in tokens])
+            ret = crsr.fetchall()
+        return ret
+
     def district_iterator(self) -> DistrictIterator:
         """
         This function is DEPRECATED!
@@ -334,6 +343,18 @@ class DBAccess:
 
         districts = json.loads(dist[0])
         return districts
+
+    def district_ids_to_districts(self, *district_ids) -> list[District]:
+        return [self.get_district(district_id) for district_id in district_ids]
+
+    def search_channel_districts(self, channel_id: int, *tokens: str) -> list[District]:
+        district_ids = self.get_channel_district_ids(channel_id)
+
+        districts = [self.get_district(district_id) for district_id in district_ids]
+
+        filtered_districts = [district for district in districts if all(token in district.name for token in tokens)]
+
+        return filtered_districts
 
     def remove_channel_districts(self, channel_id: int, district_ids: list[int]):
         with self.connection.cursor() as crsr:

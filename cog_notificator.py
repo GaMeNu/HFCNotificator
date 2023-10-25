@@ -320,10 +320,19 @@ class Notificator(commands.Cog):
                 dc_ch = self.bot.get_user(channel.id)
 
             for emb in embed_ls:
+                # Skipping conditions
                 if dc_ch is None:
+                    # Channel could not be found
                     continue
-                if len(channel.locations) != 0 and isinstance(emb.district, AreaDistrict) and (emb.district.district_id not in channel.locations):
-                    continue
+                if len(channel.locations) != 0:
+                    # Channel has specific locations registered
+                    if isinstance(emb.district, AreaDistrict) and (emb.district.district_id not in channel.locations):
+                        # District is registered but isn't in channel's registered location list
+                        continue
+                    if isinstance(emb.district, str):
+                        # District is not registered.
+                        continue
+
                 try:
                     await dc_ch.send(embed=emb.embed, view=self.hfc_button_view())
                     await asyncio.sleep(0.01)

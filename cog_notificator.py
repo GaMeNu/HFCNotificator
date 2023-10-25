@@ -16,17 +16,23 @@ AUTHOR_ID = int(os.getenv('AUTHOR_ID'))
 
 
 class AlertReqs:
-    @staticmethod
-    def request_alert_json() -> dict | None:
+
+    def __init__(self):
+        self.session = requests.Session()
+        self.session.verify = True
+
+    def request_alert_json(self) -> dict | None:
         """
         Request a json of the current running alert
         :return: JSON object as Python dict, or None if there's no alert running
         :raises requests.exceptions.Timeout: If request times out (5 seconds)
         """
-        req = requests.get('https://www.oref.org.il/WarningMessages/alert/alerts.json', headers={
+        req = self.session.get('https://www.oref.org.il/WarningMessages/alert/alerts.json', headers={
             'Referer': 'https://www.oref.org.il/',
             'X-Requested-With': 'XMLHttpRequest',
-            'Client': 'HFC Notificator bot for Discord'
+            'Connection': 'keep-alive',
+            'Client': 'HFC Notificator bot for Discord',
+            'Nonexistent-Header': 'Yes'
         }, timeout=5)
 
         decoded = req.content.decode('utf-8-sig')
@@ -161,6 +167,7 @@ class Notificator(commands.Cog):
 
         self.active_districts = []
         self.reset_district_checker = 0
+        self.alert_reqs = AlertReqs()
 
         if not self.check_for_updates.is_running():
             self.check_for_updates.start()
@@ -233,7 +240,7 @@ class Notificator(commands.Cog):
     @tasks.loop(seconds=1)
     async def check_for_updates(self):
         try:
-            current_alert: dict = AlertReqs.request_alert_json()
+            current_alert: dict = self.alert_reqs.request_alert_json()
         except requests.exceptions.Timeout as error:
             self.log.error(f'Request timed out: {error}')
             return

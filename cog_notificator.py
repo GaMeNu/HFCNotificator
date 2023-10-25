@@ -320,6 +320,9 @@ class Notificator(commands.Cog):
             else:
                 embed_ls.append(AlertEmbed.auto_alert(alert_data, district))
 
+        asyncio.create_task(self.send_alerts_to_channels(embed_ls))
+
+    async def send_alerts_to_channels(self, embed_ls):
         for channel_tup in self.db.get_all_channels():
             channel = Channel.from_tuple(channel_tup)
             if channel.server_id is not None:

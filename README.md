@@ -86,5 +86,7 @@ note that the .env file must be in the same directory as main.py
 
 [HFC Website](https://www.oref.org.il/)
 
+[Support Server](https://discord.gg/K3E4a5ekNy)
+
 
 

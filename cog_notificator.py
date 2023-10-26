@@ -15,8 +15,13 @@ from markdown import md
 load_dotenv()
 AUTHOR_ID = int(os.getenv('AUTHOR_ID'))
 
+# 2023-10-26 I have decided to start documenting the project.
+
 
 class AlertReqs:
+    """
+    A class that handles all requests from HFC's website
+    """
 
     def __init__(self):
         self.session = requests.Session()
@@ -48,14 +53,13 @@ class AlertReqs:
 
         return ret_dict
 
-    @staticmethod
-    def request_history_json() -> dict | None:
+    def request_history_json(self) -> dict | None:
         """
         Request a json of the alert history from last day
         :return: JSON object as Python dict
         :raises requests.exceptions.Timeout: If request times out (5 seconds)
         """
-        req = requests.get('https://www.oref.org.il/WarningMessages/History/AlertsHistory.json', timeout=5)
+        req = self.session.get('https://www.oref.org.il/WarningMessages/History/AlertsHistory.json', timeout=5)
 
         content = req.text
 
@@ -67,7 +71,18 @@ class AlertReqs:
 
 
 class Alert:
+    """
+    Represents an HFC Alert
+    """
     def __init__(self, id: int, cat: int, title: str, districts: list[str], desc: str):
+        """
+        Init an Alert instance
+        :param id: Alert ID
+        :param cat: Alert category
+        :param title: Alert title
+        :param districts: districts the alert is running for
+        :param desc: Alert description/extra info
+        """
         self.id = id
         self.category = cat
         self.title = title
@@ -76,6 +91,23 @@ class Alert:
 
     @classmethod
     def from_dict(cls, data: dict):
+        """
+        Return a new Alert instance from an Alert-formatted dict (matching HFC alert requests)
+
+        Dict format:
+
+        {
+            "id": int,
+            "cat": int,
+            "title": str,
+            "data": list[str],
+            "desc": str
+        }
+
+        :param data: A dict of matching format
+
+        :return: The new Alert instance
+        """
         return cls(int(data.get('id', '0')),
                    int(data.get('cat', '0')),
                    data.get('title'),
@@ -84,12 +116,23 @@ class Alert:
 
 
 class AlertEmbed:
+    """
+    A class representing an AlertEmbed
+
+    :var embed: discord.Embed ready for sending
+    :var alert: Alert containing alert data
+    :var district: db_access.AreaDistrict | str containing district data
+    """
 
     def __init__(self, alert: Alert | dict,  district: db_access.AreaDistrict | str):
         """
         Initiating the AlertEmbed class directly is equivalent to AlertEmbed.generic_alert, but is not recommended.
 
         Please use AlertEmbed.generic_alert instead.
+
+        :var embed: discord.Embed ready for sending
+        :var alert: Alert containing alert data
+        :var district: db_access.AreaDistrict | str containing district data
         """
         self.embed = discord.Embed(color=discord.Color.from_str('#FF0000'))
         self.district = district
@@ -111,11 +154,26 @@ class AlertEmbed:
 
     @classmethod
     def generic_alert(cls, alert: Alert | dict, district: db_access.AreaDistrict | str):
+        """
+        Returns a new Generic AlertEmbed
+        :param alert: Alert object
+        :param district: AreaDistrict object (District containing Area, check db_access.AreaDistrict)
+        :return: New AlertEmbed instance
+        """
         ret_alem = cls(alert, district)
         return ret_alem
 
     @classmethod
     def missile_alert(cls, alert: Alert | dict, district: db_access.AreaDistrict | str):
+        """
+        Returns a new Missile AlertEmbed
+
+        Similar to Generic AlertEmbed, but contains Migun Time
+
+        :param alert: Alert object
+        :param district: AreaDistrict object (District containing Area, check db_access.AreaDistrict)
+        :return: New AlertEmbed instance
+        """
         ret_alem = cls.generic_alert(alert, district)
 
         if (not isinstance(district, str)) and (district.migun_time is not None):
@@ -154,11 +212,19 @@ class AlertEmbed:
 
 # noinspection PyUnresolvedReferences
 class Notificator(commands.Cog):
+    """
+    Oh god.
+    """
     location_group = app_commands.Group(name='locations',
                                         description='Commands related adding, removing, or setting locations.')
     districts: list[dict] = json.loads(requests.get('https://www.oref.org.il//Shared/Ajax/GetDistricts.aspx').text)
 
     def __init__(self, bot: commands.Bot, handler: logging.Handler):
+        """
+        Create the Cog
+        :param bot: Discord commands bot client
+        :param handler: Logging handler
+        """
         self.bot = bot
 
         self.log = logging.Logger('Notificator')
@@ -175,6 +241,12 @@ class Notificator(commands.Cog):
 
     @staticmethod
     async def setup(bot: commands.Bot, handler: logging.Handler):
+        """
+        Set up the cog
+        :param bot: commands.Bot client
+        :param handler: logging handler
+        :return: the cog instance that was created and added to the bot
+        """
 
         notf = Notificator(bot, handler)
         if bot.get_cog('Notificator') is None:
@@ -183,6 +255,9 @@ class Notificator(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
+        """
+        Start API update task when ready
+        """
         if self.check_for_updates.is_running():
             return
         self.check_for_updates.start()
@@ -240,7 +315,11 @@ class Notificator(commands.Cog):
 
     @tasks.loop(seconds=1)
     async def check_for_updates(self):
+        """
+        API Updating loop, contacts the API every second to get the latest info
+        """
         try:
+            # Request the data
             current_alert: dict = self.alert_reqs.request_alert_json()
         except requests.exceptions.Timeout as error:
             self.log.error(f'Request timed out: {error}')
@@ -248,12 +327,20 @@ class Notificator(commands.Cog):
         self.log.debug(f'Alert response: {current_alert}')
 
         if current_alert is None or len(current_alert) == 0:
+            # Alert is empty
+
             if current_alert is None:
+                # None - an error while retrieving alert
                 self.log.warning('Error while current alert data.')
 
+            # from here, len(current_alert) == 0
+            # current_alert is an empty dict.
+
             if len(self.active_districts) == 0:
+                # Alert is empty and there are no active districts
                 return
 
+            # Check if we should reset active districts. 3 empty alerts in a row will trigger a reset
             self.reset_district_checker += 1
             if self.reset_district_checker == 3:
                 print('reset')
@@ -261,11 +348,13 @@ class Notificator(commands.Cog):
                 self.reset_district_checker = 0
             return
 
+        # data = active districts
         data: list[str] = current_alert["data"]
 
         new_districts: list[str] = []
 
         for district in data:
+            # Get all new_districts
 
             if district in self.active_districts:
                 continue
@@ -273,12 +362,16 @@ class Notificator(commands.Cog):
             new_districts.append(district)
 
         if len(new_districts) == 0:
+            # There are no new districts.
             return
+
         try:
             await self.send_new_alert(current_alert, new_districts)
         except BaseException as e:
             self.log.error(f'Could not send message!\nError info: {e.__str__()}')
+
         self.active_districts = data
+        self.reset_district_checker = 0
 
     @check_for_updates.after_loop
     async def update_loop_error(self):
@@ -292,6 +385,10 @@ class Notificator(commands.Cog):
 
     @staticmethod
     def hfc_button_view() -> discord.ui.View:
+        """
+        Get a discord UI View containing a button with a link to the HFC Website
+        :returns: discord.ui.View containing a discord.ui.Button() with link to HFC website
+        """
         button = discord.ui.Button(
             style=discord.ButtonStyle.link,
             label='אתר פיקוד העורף',
@@ -323,6 +420,10 @@ class Notificator(commands.Cog):
         asyncio.create_task(self.send_alerts_to_channels(embed_ls))
 
     async def send_alerts_to_channels(self, embed_ls):
+        """
+        Send the embeds in embed_ls to all channels
+        :param embed_ls: List of AlertEmbeds to send to channels
+        """
         for channel_tup in self.db.get_all_channels():
             channel = Channel.from_tuple(channel_tup)
             if channel.server_id is not None:

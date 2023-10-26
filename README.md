@@ -31,9 +31,9 @@ Register a location to receive alerts from
 Remove a location to receive alerts from
 #### /locations clear \<id\>
 Clear all registered locations (Get alerts from everywhere)
-#### /locations list \[page\]
+#### /locations list \[search\] \[page\]
 List all valid locations
-#### /locations registered \[page\]
+#### /locations registered \[search\] \[page\]
 List all registered locations
 
 ## Self-hosting

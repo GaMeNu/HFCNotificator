@@ -447,7 +447,7 @@ class Notificator(commands.Cog):
 
                 try:
                     await dc_ch.send(embed=emb.embed, view=self.hfc_button_view())
-                    await asyncio.sleep(0.01)
+                    await asyncio.sleep(0.02)
                 except BaseException as e:
                     self.log.warning(f'Failed to send alert in channel id={channel.district_id}:\n'
                                      f'{e}')

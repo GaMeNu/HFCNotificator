@@ -596,7 +596,7 @@ class Notificator(commands.Cog):
         :param alerts_in_page: The number of alerts in one page
         :return: page as str
         """
-        alert_history = AlertReqs.request_history_json()
+        alert_history = AlertReqs().request_history_json()
 
         current_time = datetime.datetime.now()
         time_back = datetime.timedelta(seconds=time_back_amount)

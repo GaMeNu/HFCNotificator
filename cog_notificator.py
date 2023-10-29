@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import re
+import sys
 
 import requests
 
@@ -9,6 +10,7 @@ from discord.ext import commands, tasks
 from discord import app_commands
 
 import db_access
+import errlogging
 from db_access import *
 from markdown import md
 
@@ -374,7 +376,7 @@ class Notificator(commands.Cog):
         self.reset_district_checker = 0
 
     @check_for_updates.after_loop
-    async def update_loop_error(self):
+    async def after_update_loop(self):
         # Attempt to force stupid "Unread Result" down its own throat
         # and just reset the connection.
         # I'm not dealing with Unread Results
@@ -382,6 +384,11 @@ class Notificator(commands.Cog):
         self.db = DBAccess()
         if not self.check_for_updates.is_running():
             self.check_for_updates.start()
+
+    @check_for_updates.error
+    async def update_loop_error(self, err):
+        errlogging.new_errlog(sys.exc_info()[1])
+        await self.after_update_loop()
 
     @staticmethod
     def hfc_button_view() -> discord.ui.View:
@@ -405,6 +412,7 @@ class Notificator(commands.Cog):
         :param new_districts: Currently active districts (districts that were not already active)
         :return:
         """
+
         self.log.info(f'Sending alerts to channels')
 
         embed_ls: list[AlertEmbed] = []

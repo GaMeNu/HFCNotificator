@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -229,19 +230,28 @@ class DBAccess:
         else:
             self.log.addHandler(logging.StreamHandler())
 
-        try:
-            self.connection = mysql.connect(
-                host='localhost',
-                user=DB_USERNAME,
-                password=DB_PASSWORD,
-                database='hfc_db'
-            )
-        except mysql.Error as e:
-            self.connection.reconnect(attempts=12, delay=5)
+        self.connection = None
+        for i in range(12):
+            try:
+                self.connection = mysql.connect(
+                    host='localhost',
+                    user=DB_USERNAME,
+                    password=DB_PASSWORD,
+                    database='hfc_db'
+                )
+            except mysql.Error as e:
+                self.log.error(f'Failed to connect to database. This is attempt {i+1}')
 
+        self.connection = mysql.connect(
+            host='localhost',
+            user=DB_USERNAME,
+            password=DB_PASSWORD,
+            database='hfc_db'
+        )
 
     def __del__(self):
-        self.connection.close()
+        if self.connection is not None:
+            self.connection.close()
 
     def add_area(self, area_id: int, area_name: str):
         with self.get_cursor() as crsr:

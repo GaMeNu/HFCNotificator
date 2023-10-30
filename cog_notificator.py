@@ -13,7 +13,7 @@ import db_access
 import errlogging
 from db_access import *
 from markdown import md
-from alert_notifiy import Alert
+from alert_maker import AlertEmbed
 
 load_dotenv()
 AUTHOR_ID = int(os.getenv('AUTHOR_ID'))

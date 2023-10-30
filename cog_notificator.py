@@ -369,7 +369,7 @@ class Notificator(commands.Cog):
 
         try:
             await self.send_new_alert(current_alert, new_districts)
-        except BaseException as e:
+        except Exception as e:
             self.log.error(f'Could not send message!\nError info: {e.__str__()}')
 
         self.active_districts = data
@@ -405,6 +405,7 @@ class Notificator(commands.Cog):
         view.add_item(button)
         return view
 
+    @errlogging.async_errlog
     async def send_new_alert(self, alert_data: dict, new_districts: list[str]):
         """
         Push an alert to all registered channels
@@ -427,11 +428,15 @@ class Notificator(commands.Cog):
 
         asyncio.create_task(self.send_alerts_to_channels(embed_ls))
 
+    @errlogging.async_errlog
     async def send_alerts_to_channels(self, embed_ls):
         """
         Send the embeds in embed_ls to all channels
         :param embed_ls: List of AlertEmbeds to send to channels
         """
+
+        raise Exception('sdgh')
+
         for channel_tup in self.db.get_all_channels():
             channel = Channel.from_tuple(channel_tup)
             if channel.server_id is not None:
@@ -456,7 +461,7 @@ class Notificator(commands.Cog):
                 try:
                     await dc_ch.send(embed=emb.embed, view=self.hfc_button_view())
                     await asyncio.sleep(0.02)
-                except BaseException as e:
+                except Exception as e:
                     self.log.warning(f'Failed to send alert in channel id={channel.district_id}:\n'
                                      f'{e}')
 

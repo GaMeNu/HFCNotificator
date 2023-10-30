@@ -49,6 +49,7 @@ class Alert:
                    data.get('data'),
                    data.get('desc'))
 
+
 class AlertEmbed:
     """
     A class representing an AlertEmbed

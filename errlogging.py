@@ -4,6 +4,13 @@ import os
 import sys
 import traceback
 
+import __main__
+from pathlib import Path
+
+main_dir = Path(__main__.__file__).parent
+botdata_dir = main_dir.joinpath('botdata')
+errlog_dir = botdata_dir.joinpath('errlogs')
+
 
 class ErrLogger:
     def __init__(self, handler: logging.Handler=None):
@@ -17,7 +24,7 @@ class ErrLogger:
         self.log.error('An error has occurred! Check the latest ERRLOG file for more info.')
         e: BaseException = err
         time = datetime.datetime.now()
-        path = os.path.join(os.path.realpath(__file__), '..', 'botdata', 'errlogs',
+        path = os.path.join(errlog_dir,
                             f'ERRLOG_{time.strftime("%Y-%m-%d_%H-%M-%S")}.txt')
         tb_str = '\n'.join(traceback.format_tb(e.__traceback__))
 
@@ -67,13 +74,11 @@ Full Traceback:
 
 
 def generate_errlog_folder():
-    botdata_path = os.path.join(os.path.realpath(__file__), '..', 'botdata')
-    if not os.path.isdir(botdata_path):
-        os.mkdir(botdata_path)
+    if not botdata_dir.is_dir():
+        botdata_dir.mkdir()
 
-    botdata_backup_path = os.path.join(botdata_path, 'errlogs')
-    if not os.path.isdir(botdata_backup_path):
-        os.mkdir(botdata_backup_path)
+    if not errlog_dir.is_dir():
+        errlog_dir.mkdir()
 
 
 def new_errlog(err: BaseException):

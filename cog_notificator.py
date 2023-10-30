@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 import re
 import sys
@@ -71,6 +70,7 @@ class AlertReqs:
         except (json.JSONDecodeError, json.decoder.JSONDecodeError):
             ret_dict = None
         return ret_dict
+
 
 # noinspection PyUnresolvedReferences
 class Notificator(commands.Cog):
@@ -294,8 +294,6 @@ class Notificator(commands.Cog):
         Send the embeds in embed_ls to all channels
         :param embed_ls: List of AlertEmbeds to send to channels
         """
-
-        raise Exception('sdgh')
 
         for channel_tup in self.db.get_all_channels():
             channel = Channel.from_tuple(channel_tup)

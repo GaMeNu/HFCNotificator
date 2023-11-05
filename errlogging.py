@@ -26,7 +26,21 @@ class ErrLogger:
         time = datetime.datetime.now()
         path = os.path.join(errlog_dir,
                             f'ERRLOG_{time.strftime("%Y-%m-%d_%H-%M-%S")}.txt')
-        tb_str = '\n'.join(traceback.format_tb(e.__traceback__))
+        tb_str = ''
+
+        context_ls = list()
+        context_ls.append(e)
+
+        ctx = e.__context__
+
+        while ctx is not None:
+            context_ls.append(ctx)
+
+        context_str = '\n'.join([context.__str__() for context in context_ls])
+
+        tb_str = '\n\n'.join(
+            ['\n'.join(traceback.format_tb(exc.__traceback__)) for exc in context_ls]
+        )
 
         data = f"""An error has occurred! Don't worry, I saved an automatic log for ya :)
 ----------------------------------------------------------------------
@@ -37,7 +51,7 @@ Error Info:
 {type(e).__name__}: {e}
 
 Context:
-{e.__context__}
+{context_str}
 
 Caused by:
 {e.__cause__}

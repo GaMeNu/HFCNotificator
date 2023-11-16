@@ -5,3 +5,4 @@ requests
 python-dotenv
 py-cpuinfo
 psutil~=5.9.6
+distro~=1.8.0

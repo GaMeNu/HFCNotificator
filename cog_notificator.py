@@ -4,6 +4,7 @@ import re
 import sys
 import time
 
+import distro
 import psutil
 import requests
 
@@ -540,14 +541,16 @@ class Notificator(commands.Cog):
         client_uptime = datetime.timedelta(seconds=int(round(curtime - self.start_time)))
         client_uptime_format = format_timedelta(client_uptime)
 
-        print(curtime)
-        print(psutil.boot_time())
-        print(curtime - psutil.boot_time())
-
         system_uptime = datetime.timedelta(seconds=int(round(curtime - psutil.boot_time())))
         system_uptime_format = format_timedelta(system_uptime)
 
         uname = platform.uname()
+
+        if uname.system != "Linux":
+            system_name = f'{uname.system} {uname.release}'
+        else:
+            # Goddamnit Linux too many distros
+            system_name = f'{distro.name(pretty=True)}'
 
         b_to_mb = 1000000
 
@@ -565,7 +568,7 @@ Guilds Joined          :: {len(self.bot.guilds)}
 Registered channels    :: {len(self.db.get_all_channels())}
 
 ==== System Information ====
-OS         :: {uname.system} {uname.release}
+OS         :: {system_name}
 Uptime     :: {system_uptime_format}
 
 Processor  :: {cpuinfo.get_cpu_info()["brand_raw"]}

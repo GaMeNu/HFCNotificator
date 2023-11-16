@@ -45,23 +45,17 @@ List all registered locations
 
 **Note:** as of 2023-10-23, discord.py seems to not install properly for Python 3.11 and above.
 The fix we've found is to first install the beta version of package `aiohttp` separately (`aiohttp==3.9.0b0`).
-```
-discord.py
-mysql-connector-python
-requests
-python-dotenv
-```
 
-You can also use the requirements files (`pip install -r`):
+Please use the requirements files (`pip install -r`):
 
 Python 3.10 and below:
 ```
-requirements.txt
+(python -m) pip install -r requirements.txt
 ```
 
 Python 3.11 and above:
 ```
-requirements-new-python.txt
+(python -m) pip install -r requirements-new-python.txt
 ```
 
 #### Other requirements

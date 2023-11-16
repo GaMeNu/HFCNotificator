@@ -3,3 +3,5 @@ discord.py
 mysql-connector-python
 requests
 python-dotenv
+py-cpuinfo
+psutil~=5.9.6

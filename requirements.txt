@@ -1,4 +1,6 @@
 discord.py
-mysql-connector-python
-requests
-python-dotenv
+mysql-connector-python~=8.2.0
+requests~=2.31.0
+python-dotenv~=1.0.0
+py-cpuinfo~=9.0.0
+psutil~=5.9.6

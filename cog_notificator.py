@@ -1,13 +1,18 @@
 import datetime
+import platform
 import re
 import sys
+import time
 
+import psutil
 import requests
 
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
 
+import cpuinfo
+import botinfo
 import db_access
 import errlogging
 from db_access import *
@@ -100,6 +105,8 @@ class Notificator(commands.Cog):
 
         if not self.check_for_updates.is_running():
             self.check_for_updates.start()
+
+        self.start_time = time.time()
 
     @staticmethod
     async def setup(bot: commands.Bot, handler: logging.Handler):
@@ -523,7 +530,52 @@ class Notificator(commands.Cog):
 
         return ret_str
 
-    @app_commands.command(name='about', description='Info about the bot')
+    @app_commands.command(name='info', description='Get client and system info')
+    async def botinfo(self, intr: discord.Interaction):
+
+        def format_timedelta(timedelta: datetime.timedelta):
+            return f'{timedelta.days} days, {((timedelta.seconds // 3600) % 24)}:{((timedelta.seconds // 60) % 60)}:{(timedelta.seconds % 60)}'
+
+        curtime = time.time()
+        client_uptime = datetime.timedelta(seconds=int(round(curtime - self.start_time)))
+        client_uptime_format = format_timedelta(client_uptime)
+
+        print(curtime)
+        print(psutil.boot_time())
+        print(curtime - psutil.boot_time())
+
+        system_uptime = datetime.timedelta(seconds=int(round(curtime - psutil.boot_time())))
+        system_uptime_format = format_timedelta(system_uptime)
+
+        uname = platform.uname()
+
+        b_to_mb = 1000000
+
+        e = discord.Embed(color=discord.Color.orange())
+        e.title = 'Home Front Command Notificator'
+        e.description = 'Info about this bot instance'
+
+        e.add_field(name='', value=f'''```asciidoc
+==== Instance and Client Information ====
+Version                :: {botinfo.version} 
+Uptime                 :: {client_uptime_format}
+Instance Maintainer(s) :: {botinfo.maintainer}
+
+Guilds Joined          :: {len(self.bot.guilds)}
+Registered channels    :: {len(self.db.get_all_channels())}
+
+==== System Information ====
+OS         :: {uname.system} {uname.release}
+Uptime     :: {system_uptime_format}
+
+Processor  :: {cpuinfo.get_cpu_info()["brand_raw"]}
+Proc.Usage :: {psutil.cpu_percent()}%
+
+RAM Usage  :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.virtual_memory().total / b_to_mb):.2f} MB ({psutil.virtual_memory().percent}%)
+```''', inline=False)
+        await intr.response.send_message(embed=e)
+
+    @app_commands.command(name='about', description='About the bot')
     async def about_bot(self, intr: discord.Interaction):
         e = discord.Embed(color=discord.Color.orange())
         e.title = 'Home Front Command Notificator'

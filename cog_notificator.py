@@ -2,7 +2,6 @@ import datetime
 import platform
 import re
 import sys
-import time
 
 import distro
 import psutil
@@ -560,21 +559,21 @@ class Notificator(commands.Cog):
 
         e.add_field(name='', value=f'''```asciidoc
 ==== Instance and Client Information ====
-Version                :: {botinfo.version} 
-Uptime                 :: {client_uptime_format}
+Bot Version            :: {botinfo.version} 
+Client Uptime          :: {client_uptime_format}
 Instance Maintainer(s) :: {botinfo.maintainer}
 
 Guilds Joined          :: {len(self.bot.guilds)}
 Registered channels    :: {len(self.db.get_all_channels())}
 
 ==== System Information ====
-OS         :: {system_name}
-Uptime     :: {system_uptime_format}
+OS            :: {system_name}
+System Uptime :: {system_uptime_format}
 
-Processor  :: {cpuinfo.get_cpu_info()["brand_raw"]}
-Proc.Usage :: {psutil.cpu_percent()}%
+Processor     :: {cpuinfo.get_cpu_info()["brand_raw"]}
+Proc.Usage    :: {psutil.cpu_percent()}%
 
-RAM Usage  :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.virtual_memory().total / b_to_mb):.2f} MB ({psutil.virtual_memory().percent}%)
+RAM Usage     :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.virtual_memory().total / b_to_mb):.2f} MB ({psutil.virtual_memory().percent}%)
 ```''', inline=False)
         await intr.response.send_message(embed=e)
 

@@ -61,8 +61,10 @@ Python 3.11 and above:
 #### Other requirements
 MySQL Server: https://dev.mysql.com/downloads/mysql/
 
-### .env format:
-Replace the angled brackets with the matching data
+
+### Local data:
+#### .env file
+Save the following to a file named ".env", and replace the angled brackets with the matching data
 ```env
 TOKEN = <Discord bot token>
 AUTHOR_ID = <Your Discord user ID>
@@ -72,6 +74,12 @@ DB_PASSWORD = <MySQL database password>
 ```
 
 note that the .env file must be in the same directory as main.py
+
+#### botinfo file
+in botinfo.json, change the "maintainer" value (default is "GaMeNu (@gamenu)") to your username, and maybe add contact information. This is in order to allow others to contact you about issues with your specific instance, and will be publicly available through /info.
+
+**Make sure to not write any personal/private information there!**
+
 
 ## Links
 [GitHub](https://github.com/GaMeNu/HFCNotificator)

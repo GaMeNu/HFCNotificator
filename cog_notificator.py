@@ -541,7 +541,7 @@ class Notificator(commands.Cog):
 
     async def execute_bot_info(self, intr):
         def format_timedelta(timedelta: datetime.timedelta):
-            return f'{timedelta.days} days, {((timedelta.seconds // 3600) % 24)}:{((timedelta.seconds // 60) % 60)}:{(timedelta.seconds % 60)}'
+            return f'{timedelta.days} days, {((timedelta.seconds // 3600) % 24):02}:{((timedelta.seconds // 60) % 60):02}:{(timedelta.seconds % 60):02}'
 
         curtime = time.time()
         client_uptime = datetime.timedelta(seconds=int(round(curtime - self.start_time)))

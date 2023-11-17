@@ -14,6 +14,12 @@
 ## What is This?
 This is a bot that connects to the HFC's servers and sends real-time notifications about alerts in Israel.
 
+The bot's development began in 2023, at the start of the Simchat Torah (Iron Swords) War, and is developed by GaMeNu and yrrad8.
+The bot aims to be relatively fast, reliable, and available for easy hosting and forking.
+
+Feel free to send suggestions and bug reports through our [discord server](https://discord.gg/K3E4a5ekNy), or just fork the bot and add what you want yourself!
+
+
 ## Setup
 Invite the bot to a server, and /register a channel, and you're ready to go!
 

@@ -4,10 +4,17 @@
 
 > **IMPORTANT:** This bot is unofficial! Please do not rely on it alone.
 
-## What is this?
+## Table of Contents
+- [What is this?](#what-is-this)
+- [Setup](#setup)
+- [Command Documentation](#command-documentation)
+- [About Self Hosting](#self-hosting)
+- [Important Links](#links)
+
+## What is This?
 This is a bot that connects to the HFC's servers and sends real-time notifications about alerts in Israel.
 
-### Setup
+## Setup
 Invite the bot to a server, and /register a channel, and you're ready to go!
 
 Alternatively, you can DM the bot to receive alerts directly to your DMs!

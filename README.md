@@ -59,8 +59,8 @@ Python 3.11 and above:
 ```
 
 #### Other requirements
-MySQL Server: https://dev.mysql.com/downloads/mysql/
-
+- A discord bot app ([tutorial](https://github.com/discord-apps/bot-tutorial#how-to-create-an-application))
+- MySQL Server (Download link: https://dev.mysql.com/downloads/mysql/) (also available on most package repositories)
 
 ### Local data:
 #### .env file

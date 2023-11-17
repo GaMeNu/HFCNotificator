@@ -2,6 +2,7 @@ import datetime
 import platform
 import re
 import sys
+import time
 
 import distro
 import psutil
@@ -532,31 +533,31 @@ class Notificator(commands.Cog):
 
     @app_commands.command(name='info', description='Get client and system info')
     async def botinfo(self, intr: discord.Interaction):
+        await intr.response.defer()
+        # Apparently this is a fairly massive command
+        # I am trying to prevent major slowdowns by creating a new task
+        # This is futile
+        asyncio.create_task(self.execute_bot_info(intr))
 
+    async def execute_bot_info(self, intr):
         def format_timedelta(timedelta: datetime.timedelta):
             return f'{timedelta.days} days, {((timedelta.seconds // 3600) % 24)}:{((timedelta.seconds // 60) % 60)}:{(timedelta.seconds % 60)}'
 
         curtime = time.time()
         client_uptime = datetime.timedelta(seconds=int(round(curtime - self.start_time)))
         client_uptime_format = format_timedelta(client_uptime)
-
         system_uptime = datetime.timedelta(seconds=int(round(curtime - psutil.boot_time())))
         system_uptime_format = format_timedelta(system_uptime)
-
         uname = platform.uname()
-
         if uname.system != "Linux":
             system_name = f'{uname.system} {uname.release}'
         else:
             # Goddamnit Linux too many distros
-            system_name = f'{distro.name(pretty=True)}'
-
+            system_name = f'{distro.name()} {distro.version_parts()[0]}.{distro.version_parts()[1]} ({distro.codename()})'
         b_to_mb = 1000000
-
         e = discord.Embed(color=discord.Color.orange())
         e.title = 'Home Front Command Notificator'
         e.description = 'Info about this bot instance'
-
         e.add_field(name='', value=f'''```asciidoc
 ==== Instance and Client Information ====
 Bot Version            :: {botinfo.version} 
@@ -570,12 +571,13 @@ Registered channels    :: {len(self.db.get_all_channels())}
 OS            :: {system_name}
 System Uptime :: {system_uptime_format}
 
-Processor     :: {cpuinfo.get_cpu_info()["brand_raw"]}
-Proc.Usage    :: {psutil.cpu_percent()}%
+CPU           :: {cpuinfo.get_cpu_info()["brand_raw"]}
+CPU Usage     :: {psutil.cpu_percent()}%
+Cores         :: {psutil.cpu_count(logical=False)} ({psutil.cpu_count(logical=True)} Threads)
 
 RAM Usage     :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.virtual_memory().total / b_to_mb):.2f} MB ({psutil.virtual_memory().percent}%)
 ```''', inline=False)
-        await intr.response.send_message(embed=e)
+        await intr.followup.send(embed=e)
 
     @app_commands.command(name='about', description='About the bot')
     async def about_bot(self, intr: discord.Interaction):

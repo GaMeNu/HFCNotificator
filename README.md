@@ -2,8 +2,6 @@
 ## A bot to send Discord notifications for HFC alerts
 ### Created by GaMeNu and yrrad8
 
-> **NOTICE:** This project might be deprecated soon. Please consider looking into better alternatives (e.g. [RanAlerts](https://ran-alerts.com/invite)), or forking the project. Sorry for anyone who used it (all 2 of you)
-
 > **IMPORTANT:** This bot is unofficial! Please do not rely on it alone.
 
 ## Table of Contents

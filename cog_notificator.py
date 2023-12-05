@@ -1,3 +1,4 @@
+import copy
 import datetime
 import platform
 import re
@@ -24,6 +25,27 @@ load_dotenv()
 AUTHOR_ID = int(os.getenv('AUTHOR_ID'))
 
 # 2023-10-26 I have decided to start documenting the project.
+
+#           ^
+#   ^ ^ ^ ^ | ^ ^ ^ ^  V
+#   | | | | | | | | |  E
+#    \ \ \ \|/ / / /   R
+#     \ \ \ | / / /    Y
+#      \ \ \|/ / /
+#       \ \ | / /      T
+#        \ \|/ /       A
+#         \ | /        L
+#          \|/         L
+#           |
+#           |          L
+#          <|>         O
+#    _____/-|-\_____   L
+#   /-----<-|->-----\
+#
+#   /-----<-|->-----\
+#   |     HAPPY     |
+#   |   HANUKKAH!   |
+#   \-----<-|->-----/
 
 
 class AlertReqs:
@@ -101,6 +123,7 @@ class Notificator(commands.Cog):
         self.db = DBAccess()
 
         self.active_districts = []
+        self.district_timeouts = {}
         self.reset_district_checker = 0
         self.alert_reqs = AlertReqs()
 
@@ -196,40 +219,51 @@ class Notificator(commands.Cog):
             return
         self.log.debug(f'Alert response: {current_alert}')
 
-        if current_alert is None or len(current_alert) == 0:
-            # Alert is empty
+        # This code reduces district timeouts, and removes them from the dict entirely when reached 0
+        # poppery :D
+        for dist_name in self.district_timeouts.copy().keys():
+            self.district_timeouts[dist_name] -= 1
+            # I like <= over ==, due to a (probably unreasonable) fear that something might go wrong, and it would get decremented twice
+            if self.district_timeouts[dist_name] <= 0:
+                self.district_timeouts.pop(dist_name, None)
+                self.log.debug(f'Popped district {dist_name}')
 
-            if current_alert is None:
-                # None - an error while retrieving alert
-                self.log.warning('Error while current alert data.')
+        # Check for SUCCESSFUL data retrieval
+        if current_alert is None:
+            # None - an error while retrieving alert
+            self.log.warning('Error while current alert data.')
+            return
+
+        # Check if there's NO NEW DATA
+        if len(current_alert) == 0:
 
             # from here, len(current_alert) == 0
-            # current_alert is an empty dict.
+            # current_alert is an empty dict - no new data.
 
-            if len(self.active_districts) == 0:
-                # Alert is empty and there are no active districts
-                return
-
-            # Check if we should reset active districts. 3 empty alerts in a row will trigger a reset
-            self.reset_district_checker += 1
-            if self.reset_district_checker == 3:
-                print('reset')
-                self.active_districts = []
-                self.reset_district_checker = 0
+            # DO **NOT**
+            # TOUCH THAT RETURN
+            # PLEASE
             return
+
+        # FROM HERE ON, WE CAN ASSUME THAT THERE ARE NEW DISTRICTS
 
         # data = active districts
         data: list[str] = current_alert["data"]
 
         new_districts: list[str] = []
 
-        for district in data:
+        for district_name in data:
             # Get all new_districts
 
-            if district in self.active_districts:
-                continue
+            if district_name in self.district_timeouts.keys():
+                new_dist = False
+            else:
+                new_dist = True
 
-            new_districts.append(district)
+            self.district_timeouts[district_name] = 60
+
+            if new_dist:
+                new_districts.append(district_name)
 
         if len(new_districts) == 0:
             # There are no new districts.
@@ -240,7 +274,6 @@ class Notificator(commands.Cog):
         except Exception as e:
             self.log.error(f'Could not send message!\nError info: {e.__str__()}')
 
-        self.active_districts = data
         self.reset_district_checker = 0
 
     @check_for_updates.after_loop
@@ -555,6 +588,10 @@ class Notificator(commands.Cog):
             # Goddamnit Linux too many distros
             system_name = f'{distro.name()} {distro.version_parts()[0]}.{distro.version_parts()[1]} ({distro.codename()})'
         b_to_mb = 1000000
+
+        pid = os.getpid()
+        process = psutil.Process(pid)
+
         e = discord.Embed(color=discord.Color.orange())
         e.title = 'Home Front Command Notificator'
         e.description = 'Info about this bot instance'

@@ -1,7 +1,4 @@
-import datetime
 import sys
-import traceback
-import types
 
 import discord
 from discord.ext import commands, tasks
@@ -9,7 +6,6 @@ from dotenv import load_dotenv
 import logging
 import os
 
-import cog_notificator
 import errlogging
 from cog_notificator import Notificator
 

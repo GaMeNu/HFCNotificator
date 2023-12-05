@@ -33,7 +33,7 @@ class ErrLogger:
 
         ctx = e.__context__
 
-        while ctx is not None:
+        if ctx is not None:
             context_ls.append(ctx)
 
         context_str = '\n'.join([context.__str__() for context in context_ls])

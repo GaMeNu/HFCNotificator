@@ -23,9 +23,9 @@ Feel free to send suggestions and bug reports through our [discord server](https
 ## Setup
 Invite the bot to a server, and /register a channel, and you're ready to go!
 
-Alternatively, you can DM the bot to receive alerts directly to your DMs!
+Alternatively, you can /register a Direct Message / Group DM channel to receive alerts directly!
 
-Please do note that the bot instance listed here is hosted on a private machine, and may be a bit slow.
+Please do note that the bot instance listed under the [links section](#links) is hosted on a private machine, and may be a bit slow. It is recommended to [host your own instance](#self-hosting), if possible.
 
 ## Command documentation
 #### /register
@@ -68,7 +68,7 @@ Python 3.10 and below:
 
 Python 3.11 and above:
 ```
-(python -m) pip install -r requirements-new-python.txt
+(python -m) pip install -r requirements-3_11.txt
 ```
 
 #### Other requirements
@@ -77,7 +77,8 @@ Python 3.11 and above:
 
 ### Local data:
 #### .env file
-Save the following to a file named ".env", and replace the angled brackets with the matching data
+Save the following to a file named ".env", and replace the angled brackets with the matching data. Do note that it has to be on the same directory as `main.py`.
+
 ```env
 TOKEN = <Discord bot token>
 AUTHOR_ID = <Your Discord user ID>
@@ -86,10 +87,8 @@ DB_USERNAME = <MySQL database username>
 DB_PASSWORD = <MySQL database password>
 ```
 
-note that the .env file must be in the same directory as main.py
-
 #### botinfo file
-in botinfo.json, change the "maintainer" value (default is "GaMeNu (@gamenu)") to your username, and maybe add contact information. This is in order to allow others to contact you about issues with your specific instance, and will be publicly available through /info.
+In botinfo.json, change the "maintainer" value (default is "GaMeNu (@gamenu)") to your username, and maybe add contact information. This is in order to allow others to contact you about issues with your specific instance, and will be publicly available through /info.
 
 **Make sure to not write any personal/private information there!**
 

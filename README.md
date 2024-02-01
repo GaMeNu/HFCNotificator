@@ -2,7 +2,7 @@
 ## A bot to send Discord notifications for HFC alerts
 ### Created by GaMeNu and yrrad8
 
-> [!CAUTION]\
+> [!WARNING]\
 > This bot is unofficial! The public instance may experience downtimes, and there may be issue with the code. Please do not rely on it alone!
 
 ## Table of Contents

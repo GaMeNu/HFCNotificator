@@ -3,6 +3,7 @@ import sys
 import discord
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
+import gettext
 import logging
 import os
 
@@ -41,6 +42,12 @@ async def on_ready():
     errlogging.generate_errlog_folder()
 
     await Notificator.setup(bot, handler)
+
+
+@bot.event
+async def on_resume():
+    if bot.get_cog('Notificator') is None:
+        await Notificator.setup(bot, handler)
 
 
 @bot.event

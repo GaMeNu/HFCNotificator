@@ -67,6 +67,7 @@ class AlertReqs:
             'Referer': 'https://www.oref.org.il/',
             'X-Requested-With': 'XMLHttpRequest',
             'Connection': 'keep-alive',
+            'Accept-Language': 'en-US,en;q=0.6',
             'Client': 'HFC Notificator bot for Discord',
             'Nonexistent-Header': 'Yes'
         }, timeout=5)
@@ -107,7 +108,7 @@ class Notificator(commands.Cog):
     """
     location_group = app_commands.Group(name='locations',
                                         description='Commands related adding, removing, or setting locations.')
-    districts: list[dict] = json.loads(requests.get('https://www.oref.org.il//Shared/Ajax/GetDistricts.aspx').text)
+    districts: list[dict] = json.loads(requests.get('https://www.oref.org.il/districts/districts_heb.json').text)
 
     def __init__(self, bot: commands.Bot, handler: logging.Handler):
         """
@@ -183,6 +184,8 @@ class Notificator(commands.Cog):
 
         return None
 
+
+
     def get_matching_channel(self, intr: discord.Interaction) -> db_access.Channel:
         """
         Gets the matching Channel ID for Server Channel or DM. Returns None if UNREGISTERED or not found
@@ -206,7 +209,7 @@ class Notificator(commands.Cog):
             return False
         return True
 
-    @tasks.loop(seconds=1)
+    @tasks.loop(seconds=1, reconnect=False)
     async def check_for_updates(self):
         """
         API Updating loop, contacts the API every second to get the latest info
@@ -216,7 +219,8 @@ class Notificator(commands.Cog):
             current_alert: dict = self.alert_reqs.request_alert_json()
         except requests.exceptions.Timeout as error:
             self.log.error(f'Request timed out: {error}')
-            return
+            raise error
+
         self.log.debug(f'Alert response: {current_alert}')
 
         # This code reduces district timeouts, and removes them from the dict entirely when reached 0
@@ -287,8 +291,20 @@ class Notificator(commands.Cog):
             self.check_for_updates.start()
 
     @check_for_updates.error
-    async def update_loop_error(self, err):
+    async def update_loop_error(self, err: Exception):
         errlogging.new_errlog(sys.exc_info()[1])
+        if isinstance(err, requests.exceptions.Timeout):
+            while True:
+                self.log.info(f'Attempting reconnect...')
+                await asyncio.sleep(2)
+                try:
+                    self.alert_reqs.request_alert_json()
+                except requests.exceptions.Timeout as error:
+                    self.log.error(f'Request timed out: {error}')
+                else:
+                    self.log.info(f'Back online!')
+                    break
+
         await self.after_update_loop()
 
     @staticmethod
@@ -682,7 +698,7 @@ RAM Usage     :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.vi
         :param cat: Category of the alert
         :return:
         """
-        if intr.user.id != AUTHOR_ID:
+        if intr.user.id not in [AUTHOR_ID]:
             await intr.response.send_message('No access.')
             return
         await intr.response.send_message('Sending test alert...')

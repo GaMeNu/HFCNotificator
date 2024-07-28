@@ -213,6 +213,7 @@ class Notificator(commands.Cog):
     async def check_for_updates(self):
         """
         API Updating loop, contacts the API every second to get the latest info
+        :return: None
         """
         try:
             # Request the data

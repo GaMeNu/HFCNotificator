@@ -5,6 +5,9 @@
 > [!WARNING]\
 > This bot is unofficial! The public instance may experience downtimes, and there may be issue with the code. Please do not rely on it alone!
 
+> [!CAUTION]\
+> As of September 2024, the public instance of HFCNotificator is offline, as none of the project maintainers are available to maintain it. Feel free to host your own instance!
+
 ## Table of Contents
 - [What is this?](#what-is-this)
 - [Setup](#setup)

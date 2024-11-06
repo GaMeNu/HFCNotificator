@@ -88,7 +88,7 @@ class AlertReqs:
         :return: JSON object as Python dict
         :raises requests.exceptions.Timeout: If request times out (5 seconds)
         """
-        req = self.session.get('https://www.oref.org.il/WarningMessages/History/AlertsHistory.json', timeout=5)
+        req = self.session.get("https://www.oref.org.il/warningMessages/alert/History/AlertsHistory.json", timeout=5)
 
         content = req.text
 

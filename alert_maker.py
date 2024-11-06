@@ -84,7 +84,7 @@ class AlertEmbed:
             self.embed.title = f'התראה ב{self.district}'
             self.embed.add_field(name=self.alert.title, value='')
 
-        self.embed.add_field(name='נכון ל', value=datetime.datetime.now().strftime("%H:%M:%S\n%d/%m/%Y"), inline=False)
+        self.embed.add_field(name='זמן התראה', value=datetime.datetime.now().strftime("%H:%M:%S\n%d/%m/%Y"), inline=False)
         self.embed.add_field(name='מידע נוסף', value=self.alert.description)
 
     @classmethod

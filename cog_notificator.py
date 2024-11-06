@@ -2,6 +2,7 @@ import datetime
 import platform
 import re
 import sys
+import time
 
 import cpuinfo
 import discord
@@ -20,7 +21,8 @@ from markdown import md
 
 load_dotenv()
 AUTHOR_ID = int(os.getenv('AUTHOR_ID'))
-
+EXPECTED_LOOP_DELTA_MIN = 0.8
+EXPECTED_LOOP_DELTA_MAX = 1.2
 
 # 2023-10-26 I have decided to start documenting the project.
 
@@ -124,7 +126,9 @@ class Notificator(commands.Cog):
         self.active_districts = []
         self.district_timeouts = {}
         self.alert_reqs = AlertReqs()
+
         self.loop_count_checker = 0
+        self.last_loop_run_time = time.time() - 1  # Verify first iteration goes by smoothly
 
         if not self.check_for_updates.is_running():
             self.check_for_updates.start()
@@ -217,6 +221,20 @@ class Notificator(commands.Cog):
 
     @tasks.loop(seconds=1, reconnect=False)
     async def check_for_updates(self):
+        # Check if the loop is running multiple too fast or too slow
+        current_time = time.time()
+        delta = round(current_time - self.last_loop_run_time, 3)
+        print(delta)
+
+        if delta < EXPECTED_LOOP_DELTA_MIN:
+            self.log.warning(f'Loop is running too quickly! Expected delta > {EXPECTED_LOOP_DELTA_MIN}s, but got {delta}s. Restarting...')
+            self.check_for_updates.stop()
+            return
+
+        if delta > EXPECTED_LOOP_DELTA_MAX:
+            self.log.warning(f'Loop is running too slowly! Expected delta < {EXPECTED_LOOP_DELTA_MAX}s, but got {delta}s instead. Do you have enough resources?')
+
+        self.last_loop_run_time = current_time
 
         # Check if the loop is running multiple times
         if self.loop_count_checker >= 1:

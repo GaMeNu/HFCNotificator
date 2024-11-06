@@ -1,28 +1,26 @@
-import copy
 import datetime
 import platform
 import re
 import sys
-import time
 
+import cpuinfo
+import discord
 import distro
 import psutil
 import requests
-
-import discord
-from discord.ext import commands, tasks
 from discord import app_commands
+from discord.ext import commands, tasks
 
-import cpuinfo
 import botinfo
 import db_access
 import errlogging
+from alert_maker import AlertEmbed
 from db_access import *
 from markdown import md
-from alert_maker import AlertEmbed
 
 load_dotenv()
 AUTHOR_ID = int(os.getenv('AUTHOR_ID'))
+
 
 # 2023-10-26 I have decided to start documenting the project.
 
@@ -125,11 +123,13 @@ class Notificator(commands.Cog):
 
         self.active_districts = []
         self.district_timeouts = {}
-        self.reset_district_checker = 0
         self.alert_reqs = AlertReqs()
+        self.loop_count_checker = 0
 
         if not self.check_for_updates.is_running():
             self.check_for_updates.start()
+
+        self.has_connection = True
 
         self.start_time = time.time()
 
@@ -184,8 +184,6 @@ class Notificator(commands.Cog):
 
         return None
 
-
-
     def get_matching_channel(self, intr: discord.Interaction) -> db_access.Channel:
         """
         Gets the matching Channel ID for Server Channel or DM. Returns None if UNREGISTERED or not found
@@ -209,23 +207,7 @@ class Notificator(commands.Cog):
             return False
         return True
 
-    @tasks.loop(seconds=1, reconnect=False)
-    async def check_for_updates(self):
-        """
-        API Updating loop, contacts the API every second to get the latest info
-        :return: None
-        """
-        try:
-            # Request the data
-            current_alert: dict = self.alert_reqs.request_alert_json()
-        except requests.exceptions.Timeout as error:
-            self.log.error(f'Request timed out: {error}')
-            raise error
-
-        self.log.debug(f'Alert response: {current_alert}')
-
-        # This code reduces district timeouts, and removes them from the dict entirely when reached 0
-        # poppery :D
+    async def _decrement_districts_timeouts(self):
         for dist_name in self.district_timeouts.copy().keys():
             self.district_timeouts[dist_name] -= 1
             # I like <= over ==, due to a (probably unreasonable) fear that something might go wrong, and it would get decremented twice
@@ -233,63 +215,98 @@ class Notificator(commands.Cog):
                 self.district_timeouts.pop(dist_name, None)
                 self.log.debug(f'Popped district {dist_name}')
 
-        # Check for SUCCESSFUL data retrieval
+    @tasks.loop(seconds=1, reconnect=False)
+    async def check_for_updates(self):
+
+        # Check if the loop is running multiple times
+        if self.loop_count_checker >= 1:
+            # This might cause the loop to still "run" multiple times in the background
+            # But it should prevent it from at least sending multiple messages
+            # (and perhaps speedrun through the queue, if that's the case)
+            self.loop_count_checker -= 1
+            return
+
+        # Increment the loop checker
+        self.loop_count_checker += 1
+
+        try:
+            # Get the newest alert
+            current_alert: dict | None = self.alert_reqs.request_alert_json()
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+            # handle connection issues
+            self.log.warning("Lost connection!")
+            current_alert = await self.handle_connection_failure()
+            print(current_alert)
+
+        self.log.debug(f'Alert response: {current_alert}')
+
+        # Decrement all districts' cooldowns.
+        await self._decrement_districts_timeouts()
+
+        # If the current alert is None, it means there was an error retrieving the data
         if current_alert is None:
-            # None - an error while retrieving alert
-            self.log.warning('Error while current alert data.')
+            self.log.warning('Error while getting current alert data')
             return
 
-        # Check if there's NO NEW DATA
-        if len(current_alert) == 0:
+        # Decrement the loop checker
+        self.loop_count_checker -= 1
 
-            # from here, len(current_alert) == 0
-            # current_alert is an empty dict - no new data.
+        # We have some data! Better go handle that lol
+        if len(current_alert) > 0:
+            await self.handle_alert_data(current_alert)
 
-            # DO **NOT**
-            # TOUCH THAT RETURN
-            # PLEASE
-            return
+    async def handle_alert_data(self, current_alert: dict):
 
-        # FROM HERE ON, WE CAN ASSUME THAT THERE ARE NEW DISTRICTS
-
-        # data = active districts
-        data: list[str] = current_alert["data"]
-
+        active_districts: list[str] = current_alert["data"]
         new_districts: list[str] = []
 
-        for district_name in data:
-            # Get all new_districts
+        # Gather only the new districts, and reset all district cooldowns
+        for district_name in active_districts:
 
-            if district_name in self.district_timeouts.keys():
-                new_dist = False
-            else:
-                new_dist = True
-
-            self.district_timeouts[district_name] = 60
-
-            if new_dist:
+            # Gather new district to new_districts list
+            if district_name not in self.district_timeouts.keys():
                 new_districts.append(district_name)
 
+            # Set district timeout to 60s, whether new or not
+            self.district_timeouts[district_name] = 60
+
         if len(new_districts) == 0:
-            # There are no new districts.
             return
 
         try:
+            # We have picked out the new districts. Send out alerts.
             await self.send_new_alert(current_alert, new_districts)
         except Exception as e:
             self.log.error(f'Could not send message!\nError info: {e.__str__()}')
 
-        self.reset_district_checker = 0
+    async def handle_connection_failure(self):
+        """
+        Attempt getting a new alert data, until connection is restored
+        """
+        while True:
+            # Wait more time, because we're already effed anyway and there's no point spamming
+            await asyncio.sleep(5)
+            try:
+                self.log.info("Attempting reconnection: ")
+                alert = self.alert_reqs.request_alert_json()
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+                self.log.info("Failed to reconnect.")
+            else:
+                return alert
 
     @check_for_updates.after_loop
     async def after_update_loop(self):
         # Attempt to force stupid "Unread Result" down its own throat
         # and just reset the connection.
         # I'm not dealing with Unread Results
+        print("DINGUS!!!")
         self.db.connection.close()
         self.db = DBAccess()
-        if not self.check_for_updates.is_running():
-            self.check_for_updates.start()
+        self.start_loop()
+
+    def start_loop(self):
+        self.db = DBAccess()
+        self.check_for_updates.restart()
 
     @check_for_updates.error
     async def update_loop_error(self, err: Exception):
@@ -302,11 +319,13 @@ class Notificator(commands.Cog):
                     self.alert_reqs.request_alert_json()
                 except requests.exceptions.Timeout as error:
                     self.log.error(f'Request timed out: {error}')
+                except requests.exceptions.ConnectionError as error:
+                    self.log.error(f'Request failed: {error}')
                 else:
                     self.log.info(f'Back online!')
                     break
 
-        await self.after_update_loop()
+        self.check_for_updates.cancel()
 
     @staticmethod
     def hfc_button_view() -> discord.ui.View:
@@ -340,7 +359,9 @@ class Notificator(commands.Cog):
             district_data = self.db.get_district_by_name(district)
 
             if district_data is not None:
-                embed_ls.append(AlertEmbed.auto_alert(alert_data, AreaDistrict.from_district(district_data, self.db.get_area(district_data.area_id))))
+                embed_ls.append(AlertEmbed.auto_alert(alert_data, AreaDistrict.from_district(district_data,
+                                                                                             self.db.get_area(
+                                                                                                 district_data.area_id))))
             else:
                 embed_ls.append(AlertEmbed.auto_alert(alert_data, district))
 
@@ -751,7 +772,8 @@ RAM Usage     :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.vi
 
         return page_content
 
-    @location_group.command(name='list', description='List all available locations, by IDs and names. Sorted alphabetically')
+    @location_group.command(name='list',
+                            description='List all available locations, by IDs and names. Sorted alphabetically')
     @app_commands.describe(search='Search tokens, separated by spaces')
     async def locations_list(self, intr: discord.Interaction, search: str | None = None, page: int = 1):
         # decide the search_results
@@ -855,7 +877,8 @@ RAM Usage     :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.vi
         await intr.response.send_message(
             f'Cleared all registered locations.\nChannel will now receive alerts from every location.')
 
-    @location_group.command(name='registered', description='List all locations registered to this channel, by IDs and names. Sorted alphabetically')
+    @location_group.command(name='registered',
+                            description='List all locations registered to this channel, by IDs and names. Sorted alphabetically')
     @app_commands.describe(search='Search tokens, separated by spaces')
     async def location_registered(self, intr: discord.Interaction, search: str | None = None, page: int = 1):
 
@@ -865,9 +888,11 @@ RAM Usage     :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.vi
             return
 
         if search is None:
-            search_results = [dist.to_tuple() for dist in self.db.district_ids_to_districts(*self.db.get_channel_district_ids(channel.id))]
+            search_results = [dist.to_tuple() for dist in
+                              self.db.district_ids_to_districts(*self.db.get_channel_district_ids(channel.id))]
         else:
-            search_results = [dist.to_tuple() for dist in self.db.search_channel_districts(channel.id, *re.split(r"\s+", search))]
+            search_results = [dist.to_tuple() for dist in
+                              self.db.search_channel_districts(channel.id, *re.split(r"\s+", search))]
 
         districts = sorted(search_results, key=lambda tup: tup[1])
 

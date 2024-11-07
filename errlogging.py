@@ -1,7 +1,6 @@
 import datetime
 import logging
 import os
-import sys
 import traceback
 
 import __main__
@@ -13,7 +12,7 @@ errlog_dir = botdata_dir.joinpath('errlogs')
 
 
 class ErrLogger:
-    def __init__(self, handler: logging.Handler=None):
+    def __init__(self, handler: logging.Handler = None):
         if handler is None:
             handler = logging.StreamHandler()
 
@@ -26,7 +25,6 @@ class ErrLogger:
         time = datetime.datetime.now()
         path = os.path.join(errlog_dir,
                             f'ERRLOG_{time.strftime("%Y-%m-%d_%H-%M-%S")}.txt')
-        tb_str = ''
 
         context_ls = list()
         context_ls.append(e)
@@ -105,6 +103,3 @@ def errlog(func):
 
 def async_errlog(func):
     return ErrLogger().async_errlog(func)
-
-
-

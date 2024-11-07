@@ -2,7 +2,6 @@ import datetime
 import platform
 import re
 import sys
-import time
 
 import cpuinfo
 import discord
@@ -15,6 +14,7 @@ from discord.ext import commands, tasks
 import botinfo
 import db_access
 import errlogging
+import loggers
 from alert_maker import AlertEmbed
 from db_access import *
 from markdown import md
@@ -120,6 +120,7 @@ class Notificator(commands.Cog):
 
         self.log = logging.Logger('Notificator')
         self.log.addHandler(handler)
+        self.log.addHandler(loggers.DefaultFileHandler("LOG_NOTIFICATOR.log"))
 
         self.db = DBAccess()
 
@@ -224,7 +225,6 @@ class Notificator(commands.Cog):
         # Check if the loop is running multiple too fast or too slow
         current_time = time.time()
         delta = round(current_time - self.last_loop_run_time, 3)
-        print(delta)
 
         if delta < EXPECTED_LOOP_DELTA_MIN:
             self.log.warning(f'Loop is running too quickly! Expected delta > {EXPECTED_LOOP_DELTA_MIN}s, but got {delta}s. Restarting...')
@@ -254,7 +254,6 @@ class Notificator(commands.Cog):
             # handle connection issues
             self.log.warning("Lost connection!")
             current_alert = await self.handle_connection_failure()
-            print(current_alert)
 
         self.log.debug(f'Alert response: {current_alert}')
 
@@ -317,7 +316,6 @@ class Notificator(commands.Cog):
         # Attempt to force stupid "Unread Result" down its own throat
         # and just reset the connection.
         # I'm not dealing with Unread Results
-        print("DINGUS!!!")
         self.db.connection.close()
         self.db = DBAccess()
         self.start_loop()

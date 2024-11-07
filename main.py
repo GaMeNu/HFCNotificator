@@ -1,23 +1,25 @@
 import sys
 
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 from dotenv import load_dotenv
-import gettext
 import logging
 import os
 
 import errlogging
+import loggers
 from cog_notificator import Notificator
 
 # Set up constants and logger
-logger = logging.Logger('General Log')
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
 AUTHOR_ID = int(os.getenv('AUTHOR_ID'))
 
+logger = logging.Logger('General Log')
 handler = logging.StreamHandler()
+handler.setFormatter(loggers.ColorFormatter())
 logger.addHandler(handler)
+logger.addHandler(loggers.DefaultFileHandler("LOG_GENERAL.log"))
 
 bot = commands.Bot('!', intents=discord.Intents.all())
 tree = bot.tree
@@ -40,6 +42,7 @@ async def on_ready():
     await bot.change_presence(activity=discord.Activity(name='for HFC alerts.', type=discord.ActivityType.watching))
 
     errlogging.generate_errlog_folder()
+    loggers.generate_logging_folder()
 
     await Notificator.setup(bot, handler)
 
@@ -55,4 +58,5 @@ async def on_error(event, *args, **kwargs):
     logger.error('An error has occurred! Check the latest ERRLOG for more info')
     errlogging.new_errlog(sys.exc_info()[1])
 
-bot.run(token=TOKEN, log_handler=handler)
+
+bot.run(token=TOKEN, log_handler=handler, log_formatter=handler.formatter)

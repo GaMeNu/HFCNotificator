@@ -44,11 +44,11 @@ async def on_ready():
     errlogging.generate_errlog_folder()
     loggers.generate_logging_folder()
 
-    await Notificator.setup(bot, handler)
-
+    if bot.get_cog('Notificator') is None:
+        await Notificator.setup(bot, handler)
 
 @bot.event
-async def on_resume():
+async def on_resumed():
     if bot.get_cog('Notificator') is None:
         await Notificator.setup(bot, handler)
 

@@ -148,8 +148,10 @@ class Notificator(commands.Cog):
         """
 
         notf = Notificator(bot, handler)
+        print(bot.cogs)
         if bot.get_cog('Notificator') is None:
             await bot.add_cog(notf)
+        print(bot.cogs)
         return notf
 
     @commands.Cog.listener()
@@ -225,6 +227,8 @@ class Notificator(commands.Cog):
         # Check if the loop is running multiple too fast or too slow
         current_time = time.time()
         delta = round(current_time - self.last_loop_run_time, 3)
+
+        print(delta)
 
         if delta < EXPECTED_LOOP_DELTA_MIN:
             self.log.warning(f'Loop is running too quickly! Expected delta > {EXPECTED_LOOP_DELTA_MIN}s, but got {delta}s. Restarting...')

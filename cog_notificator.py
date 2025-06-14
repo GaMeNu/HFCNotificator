@@ -1,4 +1,5 @@
 import datetime
+import gettext
 import platform
 import re
 import sys
@@ -147,9 +148,11 @@ class Notificator(commands.Cog):
         :return: the cog instance that was created and added to the bot
         """
 
+        if bot.get_cog('Notificator') is not None:
+            return None
+
         notf = Notificator(bot, handler)
-        if bot.get_cog('Notificator') is None:
-            await bot.add_cog(notf)
+        await bot.add_cog(notf)
         return notf
 
     @commands.Cog.listener()

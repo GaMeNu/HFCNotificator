@@ -33,6 +33,12 @@ class ColorFormatter(discord.utils._ColourFormatter):
 
 class DefaultFileHandler(logging.FileHandler):
     def __init__(self, filename: str):
+        path = Path(LOGGING_DIR, filename)
+
+        # Make sure the damn file exists
+        if not (path.exists() or path.is_file()):
+            path.touch()
+
         super().__init__(Path(LOGGING_DIR, filename))
         self.setFormatter(logging.Formatter(
             "[%(asctime)s] [%(levelname)s] %(name)s: %(message)s",

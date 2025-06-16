@@ -21,7 +21,7 @@ handler.setFormatter(loggers.ColorFormatter())
 logger.addHandler(handler)
 logger.addHandler(loggers.DefaultFileHandler("LOG_GENERAL.log"))
 
-bot = commands.Bot('!', intents=discord.Intents.all())
+bot = commands.Bot('hfc/', intents=discord.Intents.all())
 tree = bot.tree
 
 
@@ -29,11 +29,11 @@ tree = bot.tree
 async def on_message(msg: discord.Message):
     # Special command to sync messages
     if msg.content == '/sync_cmds' and msg.author.id == AUTHOR_ID:
-        print('syncing')
+        logger.info('Syncing commands...')
         await msg.reply('Syncing...', delete_after=3)
         await Notificator.setup(bot, handler)
         await tree.sync()
-        print('synced')
+        logger.info('Synced!')
         await msg.reply('Synced!', delete_after=3)
 
 
@@ -46,6 +46,7 @@ async def on_ready():
 
     if bot.get_cog('Notificator') is None:
         await Notificator.setup(bot, handler)
+
 
 @bot.event
 async def on_resumed():

@@ -427,25 +427,26 @@ class Notificator(commands.Cog):
 
                 # Stack up to 10 embeds per message
                 if len(prepped_embeds) == 10:
-                    await self.send_one_alert_message(channel, dc_ch, prepped_embeds)
+                    await self.send_one_alert_message(dc_ch, emb,  prepped_embeds)
                     prepped_embeds = {}
 
             # Send remaining alerts in one message
             if len(prepped_embeds) > 0:
-                await self.send_one_alert_message(channel, dc_ch, prepped_embeds)
+                await self.send_one_alert_message(dc_ch, emb, prepped_embeds)
 
-    async def send_one_alert_message(self, channel, dc_ch, embs: dict[str, discord.Embed]):
+    async def send_one_alert_message(self, dc_ch, alert: AlertEmbed, embs: dict[str, discord.Embed]):
         districts_str = ", ".join(embs.keys())
+
 
         try:
             await dc_ch.send(
-                content=f'התראות חדשות באזורים: {md.b(districts_str)}',
+                content=f'{md.b(alert.alert.title)} ב{districts_str}',
                 embeds=embs.values(),
                 view=self.hfc_button_view()
             )
             await asyncio.sleep(0.02)
         except Exception as e:
-            self.log.warning(f'Failed to send alerts in channel id={channel.id}:\n'
+            self.log.warning(f'Failed to send alerts in channel id={dc_ch.name}:\n'
                              f'{e}')
 
     @app_commands.command(name='register',

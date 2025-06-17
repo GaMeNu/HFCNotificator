@@ -90,19 +90,19 @@ async def load_cog(ctx: commands.Context, cog_name: str):
     read_cog_data()
 
     if cog_name not in cogs:
-        await ctx.reply(f'Could not find cog {cog_name}')
+        await ctx.reply(f'Could not find cog `"{cog_name}"`')
         return
 
     cog = cogs[cog_name]
 
     if cog in bot.extensions:
-        await ctx.send(f'Reloading cog {cog_name} ({cog})', delete_after=3, reference=ctx.message)
+        await ctx.reply(f'Reloading cog `{cog_name} ({cog})`')
     else:
-        await ctx.send(f'Loading cog {cog_name} ({cog})', delete_after=3, reference=ctx.message)
+        await ctx.reply(f'Loading cog `{cog_name} ({cog})`')
 
     await load_single_cog(cog)
 
-    await ctx.send('Finished!', delete_after=3, reference=ctx.message)
+    await ctx.reply('Finished!')
 
 
 @bot.event

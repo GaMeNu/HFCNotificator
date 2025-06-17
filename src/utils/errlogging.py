@@ -3,12 +3,10 @@ import logging
 import os
 import traceback
 
-import __main__
-from pathlib import Path
+from src.utils.dir_utils import DirUtils
 
-main_dir = Path(__main__.__file__).parent
-botdata_dir = main_dir.joinpath('botdata')
-errlog_dir = botdata_dir.joinpath('errlogs')
+dir_utils = DirUtils()
+errlog_dir = dir_utils.botdata_dir.joinpath('errlogs')
 
 
 class ErrLogger:
@@ -68,6 +66,7 @@ Full Traceback:
                 res = func(*args, **kwargs)
             except Exception as e:
                 self.new_errlog(e)
+                return None
             else:
                 return res
 
@@ -79,6 +78,7 @@ Full Traceback:
                 res = await func(*args, **kwargs)
             except Exception as e:
                 self.new_errlog(e)
+                return None
             else:
                 return res
 
@@ -86,8 +86,8 @@ Full Traceback:
 
 
 def generate_errlog_folder():
-    if not botdata_dir.is_dir():
-        botdata_dir.mkdir()
+    if not dir_utils.botdata_dir.is_dir():
+        dir_utils.botdata_dir.mkdir()
 
     if not errlog_dir.is_dir():
         errlog_dir.mkdir()

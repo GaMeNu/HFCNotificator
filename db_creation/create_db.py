@@ -5,7 +5,7 @@ import mysql.connector as mysql
 import requests
 from dotenv import load_dotenv
 
-from db_access import DBAccess
+from src.db_access import DBAccess
 
 generate_script = """
 -- MySQL Workbench Forward Engineering

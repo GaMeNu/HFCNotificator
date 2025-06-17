@@ -1,5 +1,4 @@
 import datetime
-import gettext
 import platform
 import re
 import sys
@@ -12,18 +11,18 @@ import requests
 from discord import app_commands
 from discord.ext import commands, tasks
 
-import botinfo
-import db_access
-import errlogging
-import loggers
-from alert_maker import AlertEmbed
-from db_access import *
-from markdown import md
+import src.db_access as db_access
+from src.utils import errlogging, loggers
+from src.alert_maker import AlertEmbed
+from src.db_access import *
+from src.utils.markdown import md
 
 load_dotenv()
 AUTHOR_ID = int(os.getenv('AUTHOR_ID'))
 EXPECTED_LOOP_DELTA_MIN = 0.8
 EXPECTED_LOOP_DELTA_MAX = 1.2
+
+cog: repr('Notificator')
 
 # 2023-10-26 I have decided to start documenting the project.
 
@@ -111,27 +110,35 @@ class Notificator(commands.Cog):
                                         description='Commands related adding, removing, or setting locations.')
     districts: list[dict] = json.loads(requests.get('https://www.oref.org.il/districts/districts_heb.json').text)
 
-    def __init__(self, bot: commands.Bot, handler: logging.Handler):
+    def __init__(self, bot: commands.Bot):
         """
         Create the Cog
         :param bot: Discord commands bot client
         :param handler: Logging handler
         """
-        self.bot = bot
 
+        # Set up logging
         self.log = logging.Logger('Notificator')
+
+        handler = logging.StreamHandler()
+        handler.setFormatter(loggers.ColorFormatter())
         self.log.addHandler(handler)
-        self.log.addHandler(loggers.DefaultFileHandler("LOG_NOTIFICATOR.log"))
+        self.log.addHandler(loggers.DefaultFileHandler("LOG_ALL.log"))
 
+        self.log.info("Initializing Notificator...")
+
+        # Set up client and db
+        self.bot = bot
         self.db = DBAccess()
-
-        self.active_districts = []
-        self.district_timeouts = {}
         self.alert_reqs = AlertReqs()
+
+        # set up internal vars
+        self.district_timeouts = {}
 
         self.loop_count_checker = 0
         self.last_loop_run_time = time.time() - 1  # Verify first iteration goes by smoothly
 
+        # begin check task
         if not self.check_for_updates.is_running():
             self.check_for_updates.start()
 
@@ -140,7 +147,7 @@ class Notificator(commands.Cog):
         self.start_time = time.time()
 
     @staticmethod
-    async def setup(bot: commands.Bot, handler: logging.Handler):
+    async def setup(bot: commands.Bot):
         """
         Set up the cog
         :param bot: commands.Bot client
@@ -151,7 +158,7 @@ class Notificator(commands.Cog):
         if bot.get_cog('Notificator') is not None:
             return None
 
-        notf = Notificator(bot, handler)
+        notf = Notificator(bot)
         await bot.add_cog(notf)
         return notf
 
@@ -329,6 +336,9 @@ class Notificator(commands.Cog):
 
     @check_for_updates.error
     async def update_loop_error(self, err: Exception):
+        self.log.warning(f"Update loop errored: {err}")
+        errlogging.new_errlog(err)
+
         errlogging.new_errlog(sys.exc_info()[1])
         if isinstance(err, requests.exceptions.Timeout):
             while True:
@@ -958,3 +968,12 @@ RAM Usage     :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.vi
             return
 
         await intr.response.send_message(page)
+
+
+async def setup(bot: commands.Bot):
+    global cog
+    cog = await Notificator.setup(bot)
+
+
+async def teardown(bot: commands.Bot):
+    cog.check_for_updates.cancel()

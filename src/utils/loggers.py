@@ -5,9 +5,10 @@ from pathlib import Path
 
 import discord
 
-MAIN_DIR = Path(__main__.__file__).parent
-BOTDATA_DIR = MAIN_DIR.joinpath('botdata')
-LOGGING_DIR = BOTDATA_DIR.joinpath('logs')
+from src.utils.dir_utils import DirUtils
+
+dir_utils = DirUtils()
+LOGGING_DIR = dir_utils.botdata_dir.joinpath('logs')
 
 
 class ColorFormatter(discord.utils._ColourFormatter):
@@ -49,8 +50,8 @@ class DefaultFileHandler(logging.FileHandler):
 
 
 def generate_logging_folder():
-    if not BOTDATA_DIR.is_dir():
-        BOTDATA_DIR.mkdir()
+    if not dir_utils.botdata_dir.is_dir():
+        dir_utils.botdata_dir.mkdir()
 
     if not LOGGING_DIR.is_dir():
         LOGGING_DIR.mkdir()

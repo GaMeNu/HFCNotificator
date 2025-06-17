@@ -59,7 +59,7 @@ class AlertEmbed:
     :var district: db_access.AreaDistrict | str containing district data
     """
 
-    def __init__(self, alert: Alert | dict,  district: db_access.AreaDistrict | str):
+    def __init__(self, alert: Alert | dict, district: db_access.AreaDistrict | str):
         """
         Initiating the AlertEmbed class directly is equivalent to AlertEmbed.generic_alert, but is not recommended.
 

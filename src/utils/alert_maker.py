@@ -1,9 +1,10 @@
 import datetime
 import discord
 
-import db_access
+import src.db_access as db_access
 
-from db_access import AreaDistrict
+from src.db_access import AreaDistrict
+
 
 class Alert:
     """

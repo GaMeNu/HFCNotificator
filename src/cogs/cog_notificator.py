@@ -4,6 +4,7 @@ from typing import Any
 import discord
 import requests
 from discord.ext import commands, tasks
+from discord import app_commands
 
 import src.db_access as db_access
 from src.utils.alert_reqs import AlertReqs
@@ -82,9 +83,9 @@ class COG_Notificator(commands.Cog):
         if bot.get_cog(COG_CLASS) is not None:
             return None
 
-        notf = COG_Notificator(bot)
-        await bot.add_cog(notf)
-        return notf
+        _cog = COG_Notificator(bot)
+        await bot.add_cog(_cog)
+        return _cog
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -382,6 +383,48 @@ class COG_Notificator(commands.Cog):
         except Exception as e:
             self.log.warning(f'Failed to send alerts in channel id={dc_ch.name}:\n'
                              f'{e}')
+
+    @app_commands.command(name='send_alert', description='Send a custom alert (available to bot author only)')
+    @app_commands.describe(title='Alert title',
+                           desc='Alert description',
+                           districts='Active alert districts',
+                           cat='Alert category',
+                           override='Whether to override cooldown protection')
+    async def test_alert(self,
+                         intr: discord.Interaction,
+                         title: str = 'בדיקת מערכת שליחת התראות',
+                         desc: str = 'התעלמו מהתראה זו',
+                         districts: str = 'בדיקה',
+                         cat: int = 99,
+                         override: bool = False):
+        """
+        A function to send a test alert
+        :param intr: Command interaction from discord
+        :param title: Title of the alert
+        :param desc: Description of the alert
+        :param districts: Districts of the alert
+        :param cat: Category of the alert
+        :return:
+        """
+        if intr.user.id not in [AUTHOR_ID]:
+            await intr.response.send_message('No access.')
+            return
+        await intr.response.send_message('Sending test alert...')
+
+        districts_ls = [word.strip() for word in districts.split(',')]
+
+        alert_data = {
+            "id": "133413211330000000",
+            "cat": str(cat),
+            "title": title,
+            "data": districts_ls,
+            "desc": desc
+        }
+
+        if not override:
+            await self.handle_alert_data(alert_data)
+        else:
+            await self.send_new_alert(alert_data, districts_ls)
 
 
 async def setup(bot: commands.Bot):

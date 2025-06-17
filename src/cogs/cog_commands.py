@@ -29,7 +29,7 @@ cog: Any
 # noinspection PyUnresolvedReferences
 class COG_Commands(commands.Cog):
     """
-    This cog contains all bot commands
+    This cog contains all bot commands except for send_alert/test_alert
     """
     location_group = app_commands.Group(name='locations',
                                         description='Commands related adding, removing, or setting locations.')
@@ -72,9 +72,9 @@ class COG_Commands(commands.Cog):
         if bot.get_cog(COG_CLASS) is not None:
             return None
 
-        cog = COG_Commands(bot)
-        await bot.add_cog(cog)
-        return cog
+        _cog = COG_Commands(bot)
+        await bot.add_cog(_cog)
+        return _cog
 
     def in_registered_channel(self, intr: discord.Interaction) -> bool | None:
         """
@@ -126,109 +126,6 @@ class COG_Commands(commands.Cog):
         if intr.guild is not None and not intr.user.guild_permissions.manage_channels:
             return False
         return True
-
-    @staticmethod
-    def hfc_button_view() -> discord.ui.View:
-        """
-        Get a discord UI View containing a button with a link to the HFC Website
-        :returns: discord.ui.View containing a discord.ui.Button() with link to HFC website
-        """
-        button = discord.ui.Button(
-            style=discord.ButtonStyle.link,
-            label='אתר פיקוד העורף',
-            url='https://www.oref.org.il'
-        )
-        view = discord.ui.View()
-        view.add_item(button)
-        return view
-
-    @errlogging.async_errlog
-    async def send_new_alert(self, alert_data: dict, new_districts: list[str]):
-        """
-        Push an alert to all registered channels
-        :param alert_data: Alert data dict (see test_alert for format)
-        :param new_districts: Currently active districts (districts that were not already active)
-        :return:
-        """
-
-        self.log.info(f'Sending alerts to channels')
-
-        embed_dict: dict[str, AlertEmbed] = {}
-
-        for district in new_districts:
-
-            district_data = self.db.get_district_by_name(district)
-
-            if district_data is not None:
-                embed_dict[district] = AlertEmbed.auto_alert(
-                    alert_data,
-                    AreaDistrict.from_district(
-                        district_data,
-                        self.db.get_area(district_data.area_id)
-                    )
-                )
-
-            else:
-                embed_dict[district] = (AlertEmbed.auto_alert(alert_data, district))
-
-        asyncio.create_task(self.send_alerts_to_channels(embed_dict))
-
-    @errlogging.async_errlog
-    async def send_alerts_to_channels(self, embed_dict: dict[str, AlertEmbed]):
-        """
-        Send the embeds in embed_dict to all channels
-        :param embed_dict: Dict of AlertEmbeds by districts to send to channels
-        """
-
-        for channel_tup in self.db.get_all_channels():
-            channel = Channel.from_tuple(channel_tup)
-            if channel.server_id is not None:
-                dc_ch = self.bot.get_channel(channel.id)
-            else:
-                dc_ch = self.bot.get_user(channel.id)
-
-            prepped_embeds: dict[str, discord.Embed] = {}  # So preppy
-
-            for dist, emb in embed_dict.items():
-                # Skipping conditions
-                if dc_ch is None:
-                    # Channel could not be found
-                    continue
-
-                if len(channel.locations) != 0:
-                    # Channel has specific locations registered
-                    if isinstance(emb.district, AreaDistrict) and (emb.district.district_id not in channel.locations):
-                        # District is registered but isn't in channel's registered location list
-                        continue
-                    if isinstance(emb.district, str):
-                        # District is not registered.
-                        continue
-
-                prepped_embeds[dist] = emb.embed
-
-                # Stack up to 10 embeds per message
-                if len(prepped_embeds) == 10:
-                    await self.send_one_alert_message(dc_ch, emb,  prepped_embeds)
-                    prepped_embeds = {}
-
-            # Send remaining alerts in one message
-            if len(prepped_embeds) > 0:
-                await self.send_one_alert_message(dc_ch, emb, prepped_embeds)
-
-    async def send_one_alert_message(self, dc_ch, alert: AlertEmbed, embs: dict[str, discord.Embed]):
-        districts_str = ", ".join(embs.keys())
-
-
-        try:
-            await dc_ch.send(
-                content=f'{md.b(alert.alert.title)} ב{districts_str}',
-                embeds=embs.values(),
-                view=self.hfc_button_view()
-            )
-            await asyncio.sleep(0.02)
-        except Exception as e:
-            self.log.warning(f'Failed to send alerts in channel id={dc_ch.name}:\n'
-                             f'{e}')
 
     @app_commands.command(name='register',
                           description='Register a channel to receive HFC alerts (Requires Manage Channels)')
@@ -527,48 +424,6 @@ RAM Usage     :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.vi
         view.add_item(hfc_button)
         view.add_item(gh_button)
         await intr.response.send_message(embed=e, view=view)
-
-    @app_commands.command(name='send_alert', description='Send a custom alert (available to bot author only)')
-    @app_commands.describe(title='Alert title',
-                           desc='Alert description',
-                           districts='Active alert districts',
-                           cat='Alert category',
-                           override='Whether to override cooldown protection')
-    async def test_alert(self,
-                         intr: discord.Interaction,
-                         title: str = 'בדיקת מערכת שליחת התראות',
-                         desc: str = 'התעלמו מהתראה זו',
-                         districts: str = 'בדיקה',
-                         cat: int = 99,
-                         override: bool = False):
-        """
-        A function to send a test alert
-        :param intr: Command interaction from discord
-        :param title: Title of the alert
-        :param desc: Description of the alert
-        :param districts: Districts of the alert
-        :param cat: Category of the alert
-        :return:
-        """
-        if intr.user.id not in [AUTHOR_ID]:
-            await intr.response.send_message('No access.')
-            return
-        await intr.response.send_message('Sending test alert...')
-
-        districts_ls = [word.strip() for word in districts.split(',')]
-
-        alert_data = {
-            "id": "133413211330000000",
-            "cat": str(cat),
-            "title": title,
-            "data": districts_ls,
-            "desc": desc
-        }
-
-        if not override:
-            await self.handle_alert_data(alert_data)
-        else:
-            await self.send_new_alert(alert_data, districts_ls)
 
     @staticmethod
     def locations_page(data_list: list, page: int, res_in_page: int = 50) -> str:

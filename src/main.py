@@ -29,6 +29,7 @@ tree = bot.tree
 
 cogs: dict[str, str]
 
+
 def read_cog_data():
     global cogs
     with open("./src/cogs/cogs.json", "r") as f:

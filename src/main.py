@@ -1,7 +1,6 @@
 import asyncio
 import json
 import sys
-from importlib import import_module
 
 import discord
 from discord.ext import commands
@@ -9,7 +8,7 @@ from dotenv import load_dotenv
 import logging
 import os
 
-from src.utils import errlogging, loggers
+from src.logging import errlogging, loggers
 from src.utils.dir_utils import DirUtils
 
 DirUtils.ensure_working_directory()
@@ -46,6 +45,9 @@ async def load_all_cogs():
 
     for cog in cogs.values():
         await load_single_cog(cog)
+        # Give COG_Notificator's loop time to breath and do another cycle,
+        # and lower system resource usage
+        await asyncio.sleep(1)
 
 
 async def load_single_cog(cog):

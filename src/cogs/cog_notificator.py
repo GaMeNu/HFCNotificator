@@ -6,9 +6,9 @@ import requests
 from discord.ext import commands, tasks
 
 import src.db_access as db_access
-from src.cogs.alert_reqs import AlertReqs
-from src.utils import errlogging, loggers
-from src.alert_maker import AlertEmbed
+from src.utils.alert_reqs import AlertReqs
+from src.logging import errlogging, loggers
+from src.utils.alert_maker import AlertEmbed
 from src.db_access import *
 from src.utils.markdown import md
 

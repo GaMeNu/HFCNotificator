@@ -32,7 +32,7 @@ cogs: dict[str, str]
 
 def read_cog_data():
     global cogs
-    with open("./src/cogs.json", "r") as f:
+    with open("./src/cogs/cogs.json", "r") as f:
         cogs = json.load(f)
 
 
@@ -72,6 +72,7 @@ async def _reload_cogs_and_sync(ctx: commands.Context):
     logger.info('Syncing commands...')
     await ctx.send('Syncing...', delete_after=3, reference=ctx.message)
 
+    tree.clear_commands(guild=None)
     # Reload all cogs
     await load_all_cogs()
 

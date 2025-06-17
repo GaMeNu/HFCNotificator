@@ -5,7 +5,7 @@
 > [!WARNING]\
 > This bot is unofficial! The public instance may experience downtimes, and there may be issue with the code. Please do not rely on it alone!
 
-> [!INFO]\
+> [!NOTE]\
 > Due to the escalating situation with Iran, the public instance has been re-activated.
 
 ## Table of Contents

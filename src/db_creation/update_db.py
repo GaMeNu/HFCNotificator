@@ -2,14 +2,19 @@ import os
 
 from dotenv import load_dotenv
 
-from db_creation import __version__
+from src.db_creation import __version__
 import mysql.connector as mysql
+
+from src.utils.dir_utils import DirUtils
 
 target_version = __version__
 
 load_dotenv()
 DB_USERNAME = os.getenv('DB_USERNAME')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
+
+dir_utils = DirUtils()
+dir_utils.ensure_working_directory()
 
 
 def updater_1_0_0(connection: mysql.connection.MySQLConnection) -> str:

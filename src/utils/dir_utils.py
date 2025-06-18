@@ -11,7 +11,7 @@ class DirUtils:
         os.chdir(_project_root)
 
     @property
-    def main_dir(self):
+    def project_dir(self):
         return _project_root
 
     @property

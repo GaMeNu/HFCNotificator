@@ -339,6 +339,7 @@ class COG_Commands(commands.Cog):
         def format_timedelta(timedelta: datetime.timedelta):
             return f'{timedelta.days} days, {((timedelta.seconds // 3600) % 24):02}:{((timedelta.seconds // 60) % 60):02}:{(timedelta.seconds % 60):02}'
 
+        # Gather all relevant data
         curtime = time.time()
         client_uptime = datetime.timedelta(seconds=int(round(curtime - self.start_time)))
         client_uptime_format = format_timedelta(client_uptime)

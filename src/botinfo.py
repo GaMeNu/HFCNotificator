@@ -13,7 +13,7 @@ class _Botinfo:
         self.reload()
 
     def reload(self):
-        with open(dir_utils.main_dir.joinpath("botinfo.json"), 'r') as f:
+        with open(dir_utils.project_dir.joinpath("botinfo.json"), 'r') as f:
             botinfo_dict = json.loads(f.read())
 
         self.version = botinfo_dict["version"]

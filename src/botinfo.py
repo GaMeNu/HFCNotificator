@@ -4,8 +4,20 @@ from src.utils.dir_utils import DirUtils
 
 dir_utils = DirUtils()
 
-with open(dir_utils.main_dir.joinpath("botinfo.json"), 'r') as f:
-    botinfo_dict = json.loads(f.read())
 
-version = botinfo_dict["version"]
-maintainer = botinfo_dict["maintainer"]
+class _Botinfo:
+    def __init__(self):
+        self.version: str = ""
+        self.maintainer: str = ""
+
+        self.reload()
+
+    def reload(self):
+        with open(dir_utils.main_dir.joinpath("botinfo.json"), 'r') as f:
+            botinfo_dict = json.loads(f.read())
+
+        self.version = botinfo_dict["version"]
+        self.maintainer = botinfo_dict["maintainer"]
+
+
+botinfo = _Botinfo()

@@ -10,6 +10,7 @@ import os
 
 from src.logging import errlogging, loggers
 from src.utils.dir_utils import DirUtils
+from src.botinfo import botinfo
 
 DirUtils.ensure_working_directory()
 
@@ -48,7 +49,7 @@ async def load_all_cogs():
         await load_single_cog(cog)
         # Give COG_Notificator's loop time to breath and do another cycle,
         # and lower system resource usage
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.5)
 
 
 async def load_single_cog(cog):
@@ -65,6 +66,27 @@ async def load_single_cog(cog):
         await bot.load_extension(cog)
 
 
+async def reload_bot():
+    # Reload all cogs
+    await load_all_cogs()
+    logger.info("All cogs loaded")
+
+    # Reload bot info
+    botinfo.reload()
+    logger.info("Bot information reloaded")
+
+
+@bot.command(name="reload")
+async def _reload_cogs(ctx: commands.Context):
+    if ctx.author.id != AUTHOR_ID:
+        return
+
+    logger.info(f"Reload was initiated by user @{ctx.author.name} (id={ctx.author.id})")
+    await ctx.reply("Reloading...", delete_after=3)
+    await reload_bot()
+    await ctx.reply("Done reloading!")
+
+
 @bot.command(name="sync")
 async def _reload_cogs_and_sync(ctx: commands.Context):
     if ctx.author.id != AUTHOR_ID:
@@ -73,17 +95,16 @@ async def _reload_cogs_and_sync(ctx: commands.Context):
     # Notify about sync occuring
     logger.info(f'Sync was initiated by user @{ctx.author.name} (id={ctx.author.id})')
     logger.info('Syncing commands...')
-    await ctx.send('Syncing...', delete_after=3, reference=ctx.message)
+    await ctx.reply('Syncing...', delete_after=3)
 
     tree.clear_commands(guild=None)
-    # Reload all cogs
-    await load_all_cogs()
 
+    await reload_bot()
     # Sync
     await tree.sync()
 
     logger.info('Synced!')
-    await ctx.send('Synced!', delete_after=3, reference=ctx.message)
+    await ctx.reply('Done syncing!')
 
 
 @bot.command()

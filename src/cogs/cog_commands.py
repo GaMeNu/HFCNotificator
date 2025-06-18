@@ -13,8 +13,8 @@ from discord.ext import commands
 
 import src.db_access as db_access
 from src.utils.alert_reqs import AlertReqs
-from src.logging import errlogging, loggers
-from src.utils.alert_maker import AlertEmbed
+from src.logging import loggers
+from src.botinfo import botinfo
 from src.db_access import *
 from src.utils.markdown import md
 
@@ -328,7 +328,7 @@ class COG_Commands(commands.Cog):
         return ret_str
 
     @app_commands.command(name='info', description='Get client and system info')
-    async def botinfo(self, intr: discord.Interaction):
+    async def info_bot(self, intr: discord.Interaction):
         await intr.response.defer()
         # Apparently this is a fairly massive command
         # I am trying to prevent major slowdowns by creating a new task

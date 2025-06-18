@@ -16,16 +16,18 @@
 - [Important Links](#links)
 
 ## What is This?
-This is a bot that connects to the HFC's servers and sends real-time notifications about alerts in Israel.
+This is a bot that connects to the Home Front Command's (Pikud Ha'Oref) servers and sends real-time notifications about alerts in Israel. Whether you want to receive alerts while playing or chatting with friends on Discord (instead of touching grass), or track alerts throughout the country.
 
 The bot's development began in 2023, at the start of the Simchat Torah (Iron Swords) War, and is developed by GaMeNu and yrrad8.
 The bot aims to be relatively fast, reliable, and available for easy hosting and forking.
 
 Feel free to send suggestions and bug reports through our [discord server](https://discord.gg/K3E4a5ekNy), or just fork the bot and add what you want yourself!
 
+A [public instance](https://discord.com/users/1160344131067977738) of the bot is available, but it may be slow or experience downtimes. It is best to host your own instance, if possible!
+
 
 ## Setup
-Invite the bot to a server, and /register a channel, and you're ready to go!
+Invite the bot to a server, /register a channel, and you're ready to go!
 
 Alternatively, you can /register a Direct Message / Group DM channel to receive alerts directly!
 
@@ -66,17 +68,17 @@ The fix we've found is to first install the beta version of package `aiohttp` se
 Please use the requirements files (`pip install -r`):
 
 Python 3.10 and below:
-```
-(python -m) pip install -r requirements.txt
+```bash
+$ pip install -r requirements.txt
 ```
 
 Python 3.11 and above:
-```
-(python -m) pip install -r requirements-3_11.txt
+```bash
+$ pip install -r requirements-3_11.txt
 ```
 
 #### Other requirements
-- A discord bot app ([tutorial](https://github.com/discord-apps/bot-tutorial#how-to-create-an-application))
+- A discord bot app ([tutorial](https://discordjs.guide/preparations/setting-up-a-bot-application.html#creating-your-bot))
 - MySQL Server (Download link: https://dev.mysql.com/downloads/mysql/) (also available on most package repositories)
 
 ### Local data:

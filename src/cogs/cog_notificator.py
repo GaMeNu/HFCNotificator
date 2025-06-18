@@ -57,7 +57,7 @@ class COG_Notificator(commands.Cog):
         self.alert_reqs = AlertReqs()
 
         # set up internal vars
-        self.district_timeouts = {}
+        self.district_timeouts: dict[str, dict[int, int]] = {}
 
         self.loop_count_checker = 0
         self.last_loop_run_time = time.time() - 1  # Verify first iteration goes by smoothly
@@ -149,9 +149,14 @@ class COG_Notificator(commands.Cog):
 
     async def _decrement_districts_timeouts(self):
         for dist_name in self.district_timeouts.copy().keys():
-            self.district_timeouts[dist_name] -= 1
+            for cat in self.district_timeouts[dist_name].copy().keys():
+                self.district_timeouts[dist_name][cat] -= 1
+                if self.district_timeouts[dist_name][cat] <= 0:
+                    self.district_timeouts[dist_name].pop(cat, None)
+                    self.log.debug(f'Popped district category {dist_name}:{cat}')
+
             # I like <= over ==, due to a (probably unreasonable) fear that something might go wrong, and it would get decremented twice
-            if self.district_timeouts[dist_name] <= 0:
+            if len(self.district_timeouts[dist_name]) == 0:
                 self.district_timeouts.pop(dist_name, None)
                 self.log.debug(f'Popped district {dist_name}')
 
@@ -212,15 +217,22 @@ class COG_Notificator(commands.Cog):
         active_districts: list[str] = current_alert["data"]
         new_districts: list[str] = []
 
+        alert_cat = current_alert.get("cat")
+
         # Gather only the new districts, and reset all district cooldowns
         for district_name in active_districts:
 
             # Gather new district to new_districts list
             if district_name not in self.district_timeouts.keys():
                 new_districts.append(district_name)
+            elif alert_cat not in self.district_timeouts.get(district_name):
+                new_districts.append(district_name)
 
             # Set district timeout to 60s, whether new or not
-            self.district_timeouts[district_name] = 60
+            if self.district_timeouts.get(district_name, None) is None:
+                self.district_timeouts[district_name] = {}
+
+            self.district_timeouts[district_name][alert_cat] = 60
 
         if len(new_districts) == 0:
             return

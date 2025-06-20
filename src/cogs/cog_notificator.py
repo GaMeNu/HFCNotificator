@@ -214,6 +214,10 @@ class COG_Notificator(commands.Cog):
 
     async def handle_alert_data(self, current_alert: dict):
 
+        # Code for testing nationwide alert
+        if current_alert["data"][0] == '*':
+            current_alert["data"] = [tup[1] for tup in self.db.get_all_districts()]
+
         active_districts: list[str] = current_alert["data"]
         new_districts: list[str] = []
 
@@ -237,9 +241,11 @@ class COG_Notificator(commands.Cog):
         if len(new_districts) == 0:
             return
 
+        new_districts_tup = tuple(new_districts)
+
         try:
             # We have picked out the new districts. Send out alerts.
-            await self.send_new_alert(current_alert, new_districts)
+            await self.send_new_alert(current_alert, new_districts_tup)
         except Exception as e:
             self.log.error(f'Could not send message!\nError info: {e.__str__()}')
 
@@ -309,7 +315,7 @@ class COG_Notificator(commands.Cog):
         return view
 
     @errlogging.async_errlog
-    async def send_new_alert(self, alert_data: dict, new_districts: list[str]):
+    async def send_new_alert(self, alert_data: dict, new_districts: tuple[str, ...]):
         """
         Push an alert to all registered channels
         :param alert_data: Alert data dict (see test_alert for format)
@@ -321,21 +327,22 @@ class COG_Notificator(commands.Cog):
 
         embed_dict: dict[str, AlertEmbed] = {}
 
-        for district in new_districts:
+        district_data = self.db.get_districts_by_names(new_districts)
+        res_set = set(new_districts)
 
-            district_data = self.db.get_district_by_name(district)
+        for district in district_data:
 
-            if district_data is not None:
-                embed_dict[district] = AlertEmbed.auto_alert(
-                    alert_data,
-                    AreaDistrict.from_district(
-                        district_data,
-                        self.db.get_area(district_data.area_id)
-                    )
+            embed_dict[district.name] = AlertEmbed.auto_alert(
+                alert_data,
+                AreaDistrict.from_district(
+                    district,
+                    self.db.get_area(district.area_id)
                 )
+            )
+            res_set.discard(district.name)
 
-            else:
-                embed_dict[district] = (AlertEmbed.auto_alert(alert_data, district))
+        for district in res_set:
+            embed_dict[district] = (AlertEmbed.auto_alert(alert_data, district))
 
         asyncio.create_task(self.send_alerts_to_channels(embed_dict))
 
@@ -384,8 +391,8 @@ class COG_Notificator(commands.Cog):
     async def send_one_alert_message(self, dc_ch, alert: AlertEmbed, embs: dict[str, discord.Embed]):
         districts_str = ", ".join(embs.keys())
 
-
         try:
+            self.log.debug("Sent one alert")
             await dc_ch.send(
                 content=f'{md.b(alert.alert.title)} ב{districts_str}',
                 embeds=embs.values(),

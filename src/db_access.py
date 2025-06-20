@@ -390,6 +390,23 @@ class DBAccess:
 
         return District.from_tuple(res)
 
+    def get_districts_by_names(self, names: tuple[str, ...]) -> list[District]:
+        """
+        Gets multiple districts using multiple names
+        :param names: the names to get from the database
+        :returns: empty list if no result was found, else a list of districts
+        """
+        with self.get_cursor() as crsr:
+            fmt = ','.join(['%s'] * len(names))
+            crsr.execute(f"SELECT * FROM districts WHERE district_name IN ({fmt})", names)
+            res = crsr.fetchall()
+            crsr.nextset()
+
+        if res is None:
+            return []
+
+        return [District.from_tuple(distup) for distup in res]
+
     def get_all_districts(self) -> Sequence:
         with self.get_cursor() as crsr:
             crsr.execute('SELECT * FROM districts')

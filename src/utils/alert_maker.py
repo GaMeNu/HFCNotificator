@@ -162,11 +162,12 @@ class AlertEmbedFactory:
         cur_desc = ''
         cur_dists_str = f"**{alert.title}** | "
         for dist in districts:
+            dist_name = dist.name if isinstance(dist, AreaDistrict) else dist
             cur_area = formatter(dist)
 
             if (
                     ((len(cur_desc) + len(cur_area)) > 4095)
-                    or ((len(cur_dists_str) + len(f", {dist.name}")) > 1999)
+                    or ((len(cur_dists_str) + len(f", {dist_name}")) > 1999)
             ):
                 # make sure we don't overflow the embed desc limit
                 fmt_ls.append(cur_desc)
@@ -175,7 +176,7 @@ class AlertEmbedFactory:
                 cur_dists = []
                 cur_dists_str = f"**{alert.title}** | "
 
-            cur_dists_str += f", {dist.name}"
+            cur_dists_str += f", {dist_name}"
             cur_desc += cur_area + "\n"
             cur_dists.append(dist.name if isinstance(dist, AreaDistrict) else dist)
 

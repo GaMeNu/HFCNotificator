@@ -3,7 +3,7 @@ import logging
 import os
 import traceback
 
-from src.utils.dir_utils import DirUtils
+from utils.dir_utils import DirUtils
 
 dir_utils = DirUtils()
 errlog_dir = dir_utils.botdata_dir.joinpath('errlogs')

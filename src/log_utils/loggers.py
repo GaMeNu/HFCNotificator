@@ -5,7 +5,7 @@ from pathlib import Path
 
 import discord
 
-from src.utils.dir_utils import DirUtils
+from utils.dir_utils import DirUtils
 
 dir_utils = DirUtils()
 LOGGING_DIR = dir_utils.botdata_dir.joinpath('logs')

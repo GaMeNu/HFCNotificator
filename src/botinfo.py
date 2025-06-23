@@ -1,6 +1,6 @@
 import json
 
-from src.utils.dir_utils import DirUtils
+from utils.dir_utils import DirUtils
 
 dir_utils = DirUtils()
 

@@ -3,9 +3,9 @@ import datetime
 import discord
 from typing_extensions import deprecated
 
-import src.db_access as db_access
+import db_access as db_access
 
-from src.db_access import AreaDistrict
+from db_access import AreaDistrict
 
 
 class Alert:

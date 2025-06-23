@@ -3,10 +3,10 @@ import os
 
 from dotenv import load_dotenv
 
-from src.db_creation import __version__
+from db_creation import __version__
 import mysql.connector as mysql
 
-from src.utils.dir_utils import DirUtils
+from utils.dir_utils import DirUtils
 
 target_version = __version__
 

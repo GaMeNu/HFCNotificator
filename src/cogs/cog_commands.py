@@ -11,12 +11,12 @@ import requests
 from discord import app_commands
 from discord.ext import commands
 
-import src.db_access as db_access
-from src.utils.alert_reqs import AlertReqs
-from src.logging import loggers
-from src.botinfo import botinfo
-from src.db_access import *
-from src.utils.markdown import md
+import db_access as db_access
+from utils.alert_reqs import AlertReqs
+from log_utils import loggers
+from botinfo import botinfo
+from db_access import *
+from utils.markdown import md
 
 load_dotenv()
 AUTHOR_ID = int(os.getenv('AUTHOR_ID'))
@@ -42,7 +42,7 @@ class COG_Commands(commands.Cog):
         :param handler: Logging handler
         """
 
-        # Set up logging
+        # Set up log_utils
         self.log = logging.Logger(COG_CLASS)
 
         handler = logging.StreamHandler()
@@ -65,7 +65,7 @@ class COG_Commands(commands.Cog):
         """
         Set up the cog
         :param bot: commands.Bot client
-        :param handler: logging handler
+        :param handler: log_utils handler
         :return: the cog instance that was created and added to the bot
         """
 

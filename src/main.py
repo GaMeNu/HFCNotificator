@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 import logging
 import os
 
-from src.logging import errlogging, loggers
-from src.utils.dir_utils import DirUtils
-from src.botinfo import botinfo
+from log_utils import errlogging, loggers
+from utils.dir_utils import DirUtils
+from botinfo import botinfo
 
 DirUtils.ensure_working_directory()
 

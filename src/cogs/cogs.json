@@ -1,4 +1,4 @@
 {
-  "Notificator": "src.cogs.cog_notificator",
-  "Commands": "src.cogs.cog_commands"
+  "Notificator": "cogs.cog_notificator",
+  "Commands": "cogs.cog_commands"
 }

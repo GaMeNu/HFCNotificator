@@ -2,18 +2,16 @@ import asyncio
 import sys
 from typing import Any
 
+import db_access as db_access
 import discord
 import requests
+from db_access import *
+from discord import app_commands, VoiceChannel, StageChannel, ForumChannel, CategoryChannel
 from discord.abc import PrivateChannel
 from discord.ext import commands, tasks
-from discord import app_commands, VoiceChannel, StageChannel, ForumChannel, CategoryChannel
-
-import src.db_access as db_access
-from src.utils.alert_reqs import AlertReqs
-from src.logging import errlogging, loggers
-from src.utils.alert_maker import AlertEmbed, AlertEmbedFactory, DistrictsEmbed, Alert
-from src.db_access import *
-from src.utils.markdown import md
+from log_utils import errlogging, loggers
+from utils.alert_maker import AlertEmbed, AlertEmbedFactory, DistrictsEmbed, Alert
+from utils.alert_reqs import AlertReqs
 
 load_dotenv()
 AUTHOR_ID = int(os.getenv('AUTHOR_ID'))
@@ -53,7 +51,7 @@ class COG_Notificator(commands.Cog):
         :param handler: Logging handler
         """
 
-        # Set up logging
+        # Set up log_utils
         self.log = logging.Logger(COG_CLASS)
 
         handler = logging.StreamHandler()

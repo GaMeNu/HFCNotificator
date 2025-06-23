@@ -20,8 +20,8 @@ def install_requirements():
 def main():
     install_requirements()
     try:
-        import src.db_creation.create_db
-        from src import db_access
+        import db_creation.create_db
+        import db_access
     except ImportError as e:
         print(f"Error occurred while importing the module: {e}")
     except AttributeError as e:

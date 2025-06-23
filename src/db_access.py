@@ -130,17 +130,17 @@ class Channel:
     :var locations: a list of ints, each int correlating to a District ID
     """
 
-    def __init__(self, id: int, server_id: int | None, channel_lang: str, locations: list):
+    def __init__(self, id: int, server_id: int | None, channel_lang: str, locations: tuple[int, ...]):
         """
         :param id: channel ID
         :param server_id: server ID (None for DMs)
         :param channel_lang: obsolete, just pass in 'he'
         :param locations: List of District IDs
         """
-        self.id = id
-        self.server_id = server_id
-        self.channel_lang = channel_lang
-        self.locations = locations
+        self.id: int = id
+        self.server_id: int | None = server_id
+        self.channel_lang: str = channel_lang
+        self.locations: tuple[int, ...] = locations
 
     @classmethod
     def from_tuple(cls, tup: tuple):
@@ -152,7 +152,7 @@ class Channel:
         :param tup: Tuple to pass
         :return: New Channel instance
         """
-        return cls(tup[0], tup[1], tup[2], json.loads(tup[3]))
+        return cls(tup[0], tup[1], tup[2], tuple(json.loads(tup[3])))
 
 
 class Server:
@@ -306,6 +306,87 @@ class DBAccess:
             return District.from_tuple(res)
         else:
             return None
+
+    def get_districts(self, ids: list[int]) -> list[District] | None:
+        with self.get_cursor() as crsr:
+            fmt = ",".join(["%s"] * len(ids))
+            crsr.execute(f'''
+            SELECT * 
+            FROM districts 
+            WHERE district_id IN ({fmt})''', ids)
+            res = crsr.fetchall()
+            crsr.nextset()
+
+        if res is None:
+            return None
+
+        return [District.from_tuple(cur) for cur in res]
+
+    def get_area_districts(self, district_ids: list[int]) -> dict[int, AreaDistrict] | None:
+        """
+        Gets all area-districts with ids matching the given list
+        :param district_ids: A list of all ids to get
+        :returns: a dictionary of all area-districts by their ids
+        """
+        with self.get_cursor() as crsr:
+            # Get all districts with area name by IDs
+            fmt = ",".join(["%s"] * len(district_ids))
+            crsr.execute(f'''
+                SELECT d.district_id, d.district_name, d.area_id, d.migun_time, 
+                       a.area_name
+                FROM districts d
+                LEFT JOIN areas a ON d.area_id = a.area_id
+                WHERE d.district_id IN ({fmt});
+            ''', district_ids)
+            res = crsr.fetchall()
+            crsr.nextset()
+
+        if res is None:
+            return None
+
+        # format result
+        r_ls = {}
+        for cur in res:
+            ad = AreaDistrict.from_district(
+                District(cur[0], cur[1], cur[2], cur[3]),
+                Area(cur[2], cur[4])
+            )
+            r_ls[ad.district_id] = ad
+
+        return r_ls
+
+    def get_area_districts_by_name(self, district_names: tuple[str, ...]) -> dict[str, AreaDistrict] | None:
+        """
+        Gets all area-districts with names matching the given list
+        :param district_names: A list of all names to get
+        :returns: a dictionary of all area-districts by their names
+        """
+        with self.get_cursor() as crsr:
+            # Get all districts with area name by IDs
+            fmt = ",".join(["%s"] * len(district_names))
+            crsr.execute(f'''
+                SELECT d.district_id, d.district_name, d.area_id, d.migun_time, 
+                       a.area_name
+                FROM districts d
+                LEFT JOIN areas a ON d.area_id = a.area_id
+                WHERE d.district_name IN ({fmt});
+            ''', district_names)
+            res = crsr.fetchall()
+            crsr.nextset()
+
+        if res is None:
+            return {}
+
+        # format result
+        r_dict = {}
+        for cur in res:
+            ad = AreaDistrict.from_district(
+                District(cur[0], cur[1], cur[2], cur[3]),
+                Area(cur[2], cur[4])
+            )
+            r_dict[ad.name] = ad
+
+        return r_dict
 
     def get_district_area(self, district: District) -> Area | None:
         return self.get_area(district.area_id)

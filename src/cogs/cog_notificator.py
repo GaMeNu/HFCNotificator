@@ -1,15 +1,17 @@
+import asyncio
 import sys
 from typing import Any
 
 import discord
 import requests
+from discord.abc import PrivateChannel
 from discord.ext import commands, tasks
-from discord import app_commands
+from discord import app_commands, VoiceChannel, StageChannel, ForumChannel, CategoryChannel
 
 import src.db_access as db_access
 from src.utils.alert_reqs import AlertReqs
 from src.logging import errlogging, loggers
-from src.utils.alert_maker import AlertEmbed
+from src.utils.alert_maker import AlertEmbed, AlertEmbedFactory, DistrictsEmbed, Alert
 from src.db_access import *
 from src.utils.markdown import md
 
@@ -25,13 +27,23 @@ cog: Any
 # 2023-10-26 I have decided to start documenting the project.
 
 
+class AlertEmbeds:
+    """
+    This is a container class for all embeds that need to be sent in an alert
+    """
+    def __init__(self, start_embed: discord.Embed, district_embeds: list[DistrictsEmbed], end_embed: discord.Embed):
+        self.start_embed = start_embed
+        self.district_embeds = district_embeds
+        self.end_embed = end_embed
+
+
 # noinspection PyUnresolvedReferences
 class COG_Notificator(commands.Cog):
     """
     This cog handles the HFC update loop,
     monitoring new alerts
     """
-    
+
     districts: list[dict] = json.loads(requests.get('https://www.oref.org.il/districts/districts_heb.json').text)
 
     def __init__(self, bot: commands.Bot):
@@ -212,43 +224,6 @@ class COG_Notificator(commands.Cog):
         if len(current_alert) > 0:
             await self.handle_alert_data(current_alert)
 
-    async def handle_alert_data(self, current_alert: dict):
-
-        # Code for testing nationwide alert
-        if current_alert["data"][0] == '*':
-            current_alert["data"] = [tup[1] for tup in self.db.get_all_districts()]
-
-        active_districts: list[str] = current_alert["data"]
-        new_districts: list[str] = []
-
-        alert_cat = current_alert.get("cat")
-
-        # Gather only the new districts, and reset all district cooldowns
-        for district_name in active_districts:
-
-            # Gather new district to new_districts list
-            if district_name not in self.district_timeouts.keys():
-                new_districts.append(district_name)
-            elif alert_cat not in self.district_timeouts.get(district_name):
-                new_districts.append(district_name)
-
-            # Set district timeout to 60s, whether new or not
-            if self.district_timeouts.get(district_name, None) is None:
-                self.district_timeouts[district_name] = {}
-
-            self.district_timeouts[district_name][alert_cat] = 60
-
-        if len(new_districts) == 0:
-            return
-
-        new_districts_tup = tuple(new_districts)
-
-        try:
-            # We have picked out the new districts. Send out alerts.
-            await self.send_new_alert(current_alert, new_districts_tup)
-        except Exception as e:
-            self.log.error(f'Could not send message!\nError info: {e.__str__()}')
-
     async def handle_connection_failure(self):
         """
         Attempt getting a new alert data, until connection is restored
@@ -314,6 +289,43 @@ class COG_Notificator(commands.Cog):
         view.add_item(button)
         return view
 
+    async def handle_alert_data(self, current_alert: dict):
+
+        # Code for testing nationwide alert
+        if current_alert["data"][0] == '*':
+            current_alert["data"] = [tup[1] for tup in self.db.get_all_districts()]
+
+        active_districts: list[str] = current_alert["data"]
+        new_districts: list[str] = []
+
+        alert_cat = current_alert.get("cat")
+
+        # Gather only the new districts, and reset all district cooldowns
+        for district_name in active_districts:
+
+            # Gather new district to new_districts list
+            if district_name not in self.district_timeouts.keys():
+                new_districts.append(district_name)
+            elif alert_cat not in self.district_timeouts.get(district_name):
+                new_districts.append(district_name)
+
+            # Set district timeout to 60s, whether new or not
+            if self.district_timeouts.get(district_name, None) is None:
+                self.district_timeouts[district_name] = {}
+
+            self.district_timeouts[district_name][alert_cat] = 60
+
+        if len(new_districts) == 0:
+            return
+
+        new_districts_tup = tuple(new_districts)
+
+        try:
+            # We have picked out the new districts. Send out alerts.
+            await self.send_new_alert(current_alert, new_districts_tup)
+        except Exception as e:
+            self.log.error(f'Could not send message!\nError info: {e.__str__()}')
+
     @errlogging.async_errlog
     async def send_new_alert(self, alert_data: dict, new_districts: tuple[str, ...]):
         """
@@ -323,85 +335,151 @@ class COG_Notificator(commands.Cog):
         :return:
         """
 
+        if new_districts[0] == '*':
+            new_districts = tuple(dist[1] for dist in self.db.get_all_districts())
+
         self.log.info(f'Sending alerts to channels')
 
-        embed_dict: dict[str, AlertEmbed] = {}
+        alert = Alert.from_dict(alert_data)
 
-        district_data = self.db.get_districts_by_names(new_districts)
-        res_set = set(new_districts)
+        # generate primary alert_embed
+        alert_embed = AlertEmbedFactory.make_alert_embed(alert)
+        end_alert_embed = AlertEmbedFactory.make_alert_embed(alert)
+        end_alert_embed.description = "סוף רשימת מקומות להתראה.\n**הערה:** הטמעה זו נשלחת רק כאשר נשלחו לפחות 2 הטמעות של \"מקומות התתראה\"."
 
-        for district in district_data:
+        # get all new districts' data
+        # TODO: This can probably even be done as an external cache, reducing load whenever an alert is sent
+        dists = self.db.get_area_districts_by_name(new_districts)
 
-            embed_dict[district.name] = AlertEmbed.auto_alert(
-                alert_data,
-                AreaDistrict.from_district(
-                    district,
-                    self.db.get_area(district.area_id)
-                )
-            )
-            res_set.discard(district.name)
+        # Make districts gettable by ID instead of by name for quick lookup
+        # TODO: This can probably even be done as an external cache, reducing load whenever an alert is sent
+        dists_by_id = {}
+        for dist_name, dist in dists.items():
+            # prepare dists by ID
+            dists_by_id[dist.district_id] = dist
 
-        for district in res_set:
-            embed_dict[district] = (AlertEmbed.auto_alert(alert_data, district))
-
-        asyncio.create_task(self.send_alerts_to_channels(embed_dict))
-
-    @errlogging.async_errlog
-    async def send_alerts_to_channels(self, embed_dict: dict[str, AlertEmbed]):
-        """
-        Send the embeds in embed_dict to all channels
-        :param embed_dict: Dict of AlertEmbeds by districts to send to channels
-        """
-
+        # Get all registered channels and prep them for sending
         for channel_tup in self.db.get_all_channels():
+            # Convert from DB channel to sendable channel
             channel = Channel.from_tuple(channel_tup)
-            if channel.server_id is not None:
-                dc_ch = self.bot.get_channel(channel.id)
+            dc_ch = self.get_sendable_channel(channel)
+
+            # Filter the channel's locations
+            filtered_locations = await self._filter_channel_locations(new_districts, dists, dists_by_id, channel)
+
+            # No alerts shall be sent in this channel
+            if len(filtered_locations) == 0:
+                continue
+
+            # Send alert embed to minimize messages even more
+            # and to allow for mobile/overlay notifs
+            if len(filtered_locations) <= 8:
+                result_embed = AlertEmbedFactory.make_unified_embed(alert, filtered_locations)
+
+                # relay to a secondary thread and start prepping the next channel
+                asyncio.create_task(self.send_unified_embed_to_channel(alert, dc_ch, result_embed))
+
+                # prep next channel
+                continue
+
+            # Make all districts' embeds, now that we know we're going to have to send a locations embed
+            district_embeds: list[DistrictsEmbed] = AlertEmbedFactory.make_districts_embed(alert, filtered_locations)
+
+            # place in container object
+            embeds = AlertEmbeds(alert_embed, district_embeds, end_alert_embed)
+
+            # relay to a secondary thread and start prepping the next channel
+            asyncio.create_task(self.send_to_one_channel(alert, dc_ch, embeds))
+
+    @staticmethod
+    async def _filter_channel_locations(
+            new_districts: tuple[str, ...],
+            dists: dict[str, AreaDistrict],
+            dists_by_id: dict[int, AreaDistrict],
+            channel: Channel
+    ) -> list[AreaDistrict | str]:
+        """
+        Filters the locations associated with a given channel based on the provided districts.
+
+        :param new_districts: A tuple of strings representing all new districts.
+        :param dists: A mapping of district names to AreaDistrict objects.
+        :param dists_by_id: A mapping of district IDs to AreaDistrict objects.
+        :param channel: The channel to filter for
+
+        :returns: A list of filtered locations with either the AreaDistrict objects or strings.
+        """
+        # Check if the channel has a locations filter
+        if len(channel.locations) == 0:
+            # Filtered locations is basically all active locations
+            filtered_locations: list[AreaDistrict | str] = []
+            for dist in new_districts:
+                dist = dists.get(dist, dist)
+                filtered_locations.append(dist)
+        else:
+            # prepare only registered locations
+            # (while minimizing queries to the DB)
+            filtered_locations = []
+            for loc in channel.locations:
+                dist = dists_by_id.get(loc)
+                if dist is not None:  # Because if the dist is not in the new dists, it'll be None
+                    filtered_locations.append(dist)
+        return filtered_locations
+
+    def get_sendable_channel(self, channel: Channel):
+        """
+        Takes in a database Channel object and converts it to a Discord sendable channel object
+        The result Discord channel is either a type of server channel, or a user.
+        """
+        dc_ch: VoiceChannel | StageChannel | ForumChannel | CategoryChannel | Thread | PrivateChannel | User | None
+        if channel.server_id is not None:
+            dc_ch = self.bot.get_channel(channel.id)
+        else:
+            dc_ch = self.bot.get_user(channel.id)
+        return dc_ch
+
+    async def send_unified_embed_to_channel(self, alert: Alert, dc_ch, embed: DistrictsEmbed):
+        try:
+            content = self.format_districts_content(alert, embed)
+            await dc_ch.send(content=content, embed=embed.embed)
+        except Exception as e:
+            if isinstance(dc_ch, discord.User):
+                self.log.warning(f'Could not send (unified) alert to user @{dc_ch.name}.\nError info: {e}')
             else:
-                dc_ch = self.bot.get_user(channel.id)
+                self.log.warning(f'Could not send alert to channel #{dc_ch.name}@{dc_ch.guild}.\nError info: {e}')
+            errlogging.new_errlog(e)
+        else:
+            self.log.info(f"Finished channel {dc_ch.name}")
 
-            prepped_embeds: dict[str, discord.Embed] = {}  # So preppy
-
-            for dist, emb in embed_dict.items():
-                # Skipping conditions
-                if dc_ch is None:
-                    # Channel could not be found
-                    continue
-
-                if len(channel.locations) != 0:
-                    # Channel has specific locations registered
-                    if isinstance(emb.district, AreaDistrict) and (emb.district.district_id not in channel.locations):
-                        # District is registered but isn't in channel's registered location list
-                        continue
-                    if isinstance(emb.district, str):
-                        # District is not registered.
-                        continue
-
-                prepped_embeds[dist] = emb.embed
-
-                # Stack up to 10 embeds per message
-                if len(prepped_embeds) == 10:
-                    await self.send_one_alert_message(dc_ch, emb,  prepped_embeds)
-                    prepped_embeds = {}
-
-            # Send remaining alerts in one message
-            if len(prepped_embeds) > 0:
-                await self.send_one_alert_message(dc_ch, emb, prepped_embeds)
-
-    async def send_one_alert_message(self, dc_ch, alert: AlertEmbed, embs: dict[str, discord.Embed]):
-        districts_str = ", ".join(embs.keys())
+    async def send_to_one_channel(self, alert: Alert, dc_ch, embeds: AlertEmbeds):
+        alert_embed = embeds.start_embed
+        district_embeds = embeds.district_embeds
+        end_alert_embed = embeds.end_embed
 
         try:
-            self.log.debug("Sent one alert")
-            await dc_ch.send(
-                content=f'{md.b(alert.alert.title)} ב{districts_str}',
-                embeds=embs.values(),
-                view=self.hfc_button_view()
-            )
-            await asyncio.sleep(0.02)
+            await dc_ch.send(embed=alert_embed)
+            for dists_emb in district_embeds:
+                content = self.format_districts_content(alert, dists_emb)
+                await dc_ch.send(content=content, embed=dists_emb.embed)
+                await asyncio.sleep(0.02)
+            if len(district_embeds) >= 2:
+                await dc_ch.send(embed=end_alert_embed)
         except Exception as e:
-            self.log.warning(f'Failed to send alerts in channel id={dc_ch.name}:\n'
-                             f'{e}')
+            if isinstance(dc_ch, discord.User):
+                self.log.warning(f'Could not send alert to user @{dc_ch.name}.\nError info: {e}')
+            else:
+                self.log.warning(f'Could not send alert to channel #{dc_ch.name}@{dc_ch.guild}.\nError info: {e}')
+            errlogging.new_errlog(e)
+        else:
+            self.log.info(f"Finished channel {dc_ch.name}")
+
+    @staticmethod
+    def format_districts_content(alert: Alert, dists_emb: DistrictsEmbed):
+        """
+        This method formats the districts content that shall be sent alongside the embed
+        """
+        districts_content_fmt = ", ".join(dists_emb.districts)
+        content = f"**{alert.title}** | {districts_content_fmt}"
+        return content
 
     @app_commands.command(name='send_alert', description='Send a custom alert (available to bot author only)')
     @app_commands.describe(title='Alert title',
@@ -440,10 +518,10 @@ class COG_Notificator(commands.Cog):
             "desc": desc
         }
 
-        if not override:
-            await self.handle_alert_data(alert_data)
+        if override:
+            await self.send_new_alert(alert_data, tuple(districts_ls))
         else:
-            await self.send_new_alert(alert_data, districts_ls)
+            await self.handle_alert_data(alert_data)
 
 
 async def setup(bot: commands.Bot):

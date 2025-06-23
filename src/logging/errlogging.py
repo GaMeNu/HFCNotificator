@@ -57,7 +57,7 @@ Full Traceback:
 {tb_str}
 """
 
-        with open(path, 'w') as f:
+        with open(path, 'w', encoding='utf_8') as f:
             f.write(data)
 
     def errlog(self, func):

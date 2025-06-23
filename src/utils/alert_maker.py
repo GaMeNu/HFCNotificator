@@ -1,7 +1,6 @@
 import datetime
 
 import discord
-from typing_extensions import deprecated
 
 import db_access as db_access
 
@@ -208,9 +207,11 @@ class AlertEmbedFactory:
 
         return DistrictsEmbed(embed, dists_str_ls)
 
-@deprecated("Use AlertEmbedFactory instead")
+
 class AlertEmbed:
     """
+    DEPRECATED
+
     A class representing an AlertEmbed
 
     :var embed: discord.Embed ready for sending

@@ -127,6 +127,21 @@ class COG_Commands(commands.Cog):
             return False
         return True
 
+    @staticmethod
+    def hfc_button_view() -> discord.ui.View:
+        """
+        Get a discord UI View containing a button with a link to the HFC Website
+        :returns: discord.ui.View containing a discord.ui.Button() with link to HFC website
+        """
+        button = discord.ui.Button(
+            style=discord.ButtonStyle.link,
+            label='אתר פיקוד העורף',
+            url='https://www.oref.org.il'
+        )
+        view = discord.ui.View()
+        view.add_item(button)
+        return view
+
     @app_commands.command(name='register',
                           description='Register a channel to receive HFC alerts (Requires Manage Channels)')
     async def register_channel(self, intr: discord.Interaction):

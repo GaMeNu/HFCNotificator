@@ -55,29 +55,62 @@ a bit slow. It is recommended to [host your own instance](#self-hosting), if pos
 Run in a channel to register it to receive alerts
 ### /unregister
 Run in a registered channel to stop it from receiving alerts
-### /latest \<time\> \<unit\> \[page\]
+### /latest \<time: int\> \<unit: str\> \[page: int\]
 Get the latest alerts from up to a certain time back.
 ### /about
-Get some info about the bot itself
+Get some useful information about the bot and the project
 ### /info
-Get info about the system and client
+Get info about this specific instance
 
 ## Location Management
-### /locations add \<id\>
-Register a location to receive alerts from
-### /locations remove \<id\>
-Remove a location to receive alerts from
-### /locations clear \<id\>
+### /locations add \<locations: str\>
+Register channel locations. The channel will only get alerts from registered locations, rather than all alerts.
+- **locations:** A comma-separated list of district IDs to add
+### /locations remove \<locations: str\>
+Remove registered channel locations. The channel will no longer receive alerts from these locations, 
+reverting to all alerts if no locations are registered.
+- **locations:** A comma-separated list of district IDs to remove
+### /locations clear
 Clear all registered locations (Get alerts from everywhere)
-### /locations list \[search\] \[page\]
-List all valid locations
-### /locations registered \[search\] \[page\]
-List all registered locations
+### /locations list \[search: str\] \[page: int\]
+List all valid locations and their corresponding IDs
+### /locations registered \[search: str\] \[page: int\]
+List all registered locations and their corresponding IDs
+
+## Maintainer Commands
+### /send_alert \[title: str\] \[desc: str\] \[districts: str\] \[cat: int\] \[override: bool\]
+Sends a test alert to all registered channels.
+- **title:** The alert title
+- **desc:** The alert's description
+- **districts:** ID's of districts the alert will be sent to, in a comma-seperated list
+- **cat:** The alert's category
+- **override:** Whether to override district cooldown or not (default=`False`)
+### hfc/sync
+Hot-reloads all cogs, and syncs commands with the Discord gateway
+### hfc/reload
+Hot-reloads all cogs.
+
+This command is not fully functional yet, due to some issues with the importing from other files,
+but can still be useful for quick hot-reloading of only the cogs.
+### hfc/load_cog \<name: str\>
+Reload a specific cog. 
+
+The name of all cogs can be found in [/src/cogs/cogs.json](/src/cogs/cogs.json), along with their associated imports.
+
 
 # Self-hosting
 ## Requirements
+### Knowledge Prerequisites
+While we built this bot with self-hosting and ease of set-up in mind, some prior knowledge is still recommended to know
+what you're doing.
+
+Some recommended prior knowledge:
+- Prior experience with Python as a whole, as well as installing packages with the `pip` package manager.
+- Some knowledge on Discord bots and how to create one. (see tutorial [below](#other-requirements))
+- Prior experience with MySQL (recommended), or with a different SQL-based RDBMS, and knowledge of how to set one up.
+
 ### Required PyPI packages (run each with `pip install`)
-**Note:** On Windows you will have to write `python -m pip` instead of `pip` at the beginning of pip install commands
+**Note:** On Windows you will have to use `python -m pip` instead of `pip` at the beginning of pip install commands
 
 **Note:** as of 2023-10-23, discord.py seems to not install properly for Python 3.11 and above.
 The fix we've found is to first install the beta version of package `aiohttp` separately (`aiohttp==3.9.0b0`).

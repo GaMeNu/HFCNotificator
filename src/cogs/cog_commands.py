@@ -32,7 +32,7 @@ class COG_Commands(commands.Cog):
     This cog contains all bot commands except for send_alert/test_alert
     """
     location_group = app_commands.Group(name='locations',
-                                        description='Commands related adding, removing, or setting locations.')
+                                        description='Commands related to adding, removing, or setting locations.')
     districts: list[dict] = json.loads(requests.get('https://www.oref.org.il/districts/districts_heb.json').text)
 
     def __init__(self, bot: commands.Bot):
@@ -372,7 +372,7 @@ class COG_Commands(commands.Cog):
         process = psutil.Process(pid)
 
         e = discord.Embed(color=discord.Color.orange())
-        e.title = 'Home Front Command Commands'
+        e.title = 'Home Front Command Notificator'
         e.description = 'Info about this bot instance'
         e.add_field(name='', value=f'''```asciidoc
 ==== Instance and Client Information ====
@@ -398,7 +398,7 @@ RAM Usage     :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.vi
     @app_commands.command(name='about', description='About the bot')
     async def about_bot(self, intr: discord.Interaction):
         e = discord.Embed(color=discord.Color.orange())
-        e.title = 'Home Front Command Commands'
+        e.title = 'Home Front Command Notificator'
         e.description = 'A bot to send Discord messages for HFC alerts'
         e.add_field(name='Important info!',
                     value=f'This bot is {md.b("unofficial")} and is not related to the Home Front Command. Please do not rely on this alone.',
@@ -416,7 +416,7 @@ RAM Usage     :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.vi
                     value='Yes! Everything is available in the GitHub repository.\nMore info on the project\'s README page (See Links below).',
                     inline=False)
         e.add_field(name='Links',
-                    value=md.bq(f'{md.hl("GitHub", "https://github.com/GaMeNu/HFCCommands")}\n'
+                    value=md.bq(f'{md.hl("GitHub", "https://github.com/GaMeNu/HFCNotificator")}\n'
                                 f'{md.hl("Official Bot Invite Link", "https://discord.com/api/oauth2/authorize?client_id=1160344131067977738&permissions=0&scope=applications.commands%20bot")}\n'
                                 f'{md.hl("HFC Website", "https://www.oref.org.il/")}\n'
                                 f'{md.hl("Bot Profile (for DMs)", "https://discord.com/users/1160344131067977738")}\n'
@@ -434,7 +434,7 @@ RAM Usage     :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.vi
         gh_button = discord.ui.Button(
             style=discord.ButtonStyle.link,
             label='GitHub Repository',
-            url='https://github.com/GaMeNu/HFCCommands'
+            url='https://github.com/GaMeNu/HFCNotificator'
         )
         view = discord.ui.View()
         view.add_item(hfc_button)

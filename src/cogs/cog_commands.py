@@ -417,10 +417,10 @@ RAM Usage     :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.vi
                     inline=False)
         e.add_field(name='Links',
                     value=md.bq(f'{md.hl("GitHub", "https://github.com/GaMeNu/HFCNotificator")}\n'
-                                f'{md.hl("Official Bot Invite Link", "https://discord.com/api/oauth2/authorize?client_id=1160344131067977738&permissions=0&scope=applications.commands%20bot")}\n'
-                                f'{md.hl("HFC Website", "https://www.oref.org.il/")}\n'
-                                f'{md.hl("Bot Profile (for DMs)", "https://discord.com/users/1160344131067977738")}\n'
-                                f'{md.hl("Support Server", "https://discord.gg/K3E4a5ekNy")}'),
+                                f'{md.hl("Public Bot Invite Link", "https://discord.com/api/oauth2/authorize?client_id=1160344131067977738&permissions=0&scope=applications.commands%20bot")}\n'
+                                f'{md.hl("Public Bot Profile (for DMs)", "https://discord.com/users/1160344131067977738")}\n'
+                                f'{md.hl("Support Server", "https://discord.gg/jVJpAU84bT")}'
+                                f'{md.hl("Official HFC Website", "https://www.oref.org.il/")}\n'),
                     inline=True)
 
         e.add_field(name='Created by', value=md.bq('GaMeNu (@gamenu)\n'

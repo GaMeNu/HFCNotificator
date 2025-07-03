@@ -1,4 +1,43 @@
 {
   "version": "2.3.0-dev",
-  "maintainer": "GaMeNu (@gamenu)"
+  "maintainer": "GaMeNu (@gamenu)",
+
+  "about": {
+    "title": "Home Front Command Notificator",
+    "description": "A bot to send Discord alerts for HFC (Pikud Ha'Oref) alerts",
+    "fields": [
+      {
+        "name": "Important Info!",
+        "value": "This bot is **unofficial** and is not related to Home Front Command. Please do not rely on this alone.",
+        "inline": false
+      },
+      {
+        "name": "What is this?",
+        "value": "This is a bot that connects to the HFC's servers and sends real-time notifications about alerts in Israel.",
+        "inline": false
+      },
+      {
+        "name": "Setup",
+        "value": "Just invite the bot to a server (see Links below), and /register a channel to start receiving notifications.\nAlternatively, you can /register a DM directly with the bot.\nPlease do note that the public instance of the bot is hosted on a private machine (A.K.A. an old computer I have lying around), so it may be a bit slow.\nFeel free to host your own instance!",
+        "inline": false
+      },
+      {
+        "name": "Can I host it?",
+        "value": "Yes! Everything is available in the GitHub repository.\\nMore info on the project's README page (See Links below).",
+        "inline": false
+      }
+    ],
+    "links": {
+      "GitHub": "https://github.com/GaMeNu/HFCNotificator",
+      "Public Bot Invite Link": "https://discord.com/api/oauth2/authorize?client_id=1160344131067977738&permissions=0&scope=applications.commands%20bot",
+      "Public Bot User Profile (for DMs)": "https://discord.com/users/1160344131067977738",
+      "Support Server": "https://discord.gg/jVJpAU84bT",
+      "Official HFC Website": "https://www.oref.org.il/"
+    }
+  },
+
+  "cogs": {
+    "Notificator": "cogs.cog_notificator",
+    "Commands": "cogs.cog_commands"
+  }
 }

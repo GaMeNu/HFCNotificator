@@ -10,7 +10,7 @@ import os
 
 from log_utils import errlogging, loggers
 from utils.dir_utils import DirUtils
-from botinfo import botinfo
+from botinfo import botinfo, get_botinfo_data
 
 DirUtils.ensure_working_directory()
 
@@ -33,8 +33,7 @@ cogs: dict[str, str]
 
 def read_cog_data():
     global cogs
-    with open("./src/cogs/cogs.json", "r") as f:
-        cogs = json.load(f)
+    cogs = get_botinfo_data()["cogs"]
 
 
 async def load_all_cogs():
@@ -49,7 +48,7 @@ async def load_all_cogs():
         await load_single_cog(cog)
         # Give COG_Notificator's loop time to breath and do another cycle,
         # and lower system resource usage
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(1)
 
 
 async def load_single_cog(cog):
@@ -119,6 +118,8 @@ async def load_cog(ctx: commands.Context, cog_name: str):
         return
 
     cog = cogs[cog_name]
+
+    logger.info(f'(re)load of cog {cog_name} ({cog}) was initiated by user @{ctx.author.name} (id={ctx.author.id})')
 
     if cog in bot.extensions:
         await ctx.reply(f'Reloading cog `{cog_name} ({cog})`')

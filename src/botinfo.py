@@ -4,6 +4,13 @@ from utils.dir_utils import DirUtils
 
 dir_utils = DirUtils()
 
+BOTINFO_PATH = dir_utils.project_dir.joinpath("botinfo.json")
+
+
+def get_botinfo_data():
+    with open(BOTINFO_PATH, 'r') as f:
+        return json.load(f)
+
 
 class _Botinfo:
     def __init__(self):
@@ -13,7 +20,7 @@ class _Botinfo:
         self.reload()
 
     def reload(self):
-        with open(dir_utils.project_dir.joinpath("botinfo.json"), 'r') as f:
+        with open(BOTINFO_PATH, 'r') as f:
             botinfo_dict = json.loads(f.read())
 
         self.version = botinfo_dict["version"]

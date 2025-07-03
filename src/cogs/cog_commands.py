@@ -18,6 +18,8 @@ from botinfo import botinfo
 from db_access import *
 from utils.markdown import md
 
+from src.botinfo import dir_utils, get_botinfo_data
+
 load_dotenv()
 AUTHOR_ID = int(os.getenv('AUTHOR_ID'))
 
@@ -59,6 +61,7 @@ class COG_Commands(commands.Cog):
         self.start_time = time.time()
 
         self.log.info(f"{COG_CLASS} is now initialized")
+        self.about_data = get_botinfo_data()["about"]
 
     @staticmethod
     async def setup(bot: commands.Bot):
@@ -397,30 +400,20 @@ RAM Usage     :: {(psutil.virtual_memory().used / b_to_mb):.2f} MB / {(psutil.vi
 
     @app_commands.command(name='about', description='About the bot')
     async def about_bot(self, intr: discord.Interaction):
+
         e = discord.Embed(color=discord.Color.orange())
-        e.title = 'Home Front Command Notificator'
-        e.description = 'A bot to send Discord messages for HFC alerts'
-        e.add_field(name='Important info!',
-                    value=f'This bot is {md.b("unofficial")} and is not related to the Home Front Command. Please do not rely on this alone.',
-                    inline=False)
-        e.add_field(name='What is this?',
-                    value='This is a bot that connects to the HFC\'s servers and sends real-time notifications about alerts in Israel.',
-                    inline=False)
-        e.add_field(name='Setup',
-                    value='Just invite the bot to a server (see Links below), and /register a channel to start receiving notifications.\n'
-                          'Alternatively, you can /register a DM directly with the bot.\n'
-                          'Please do note that the main instance of the bot is hosted on a private machine, so it may be a bit slow.\n'
-                          'Feel free to host your own instance!',
-                    inline=False)
-        e.add_field(name='Can I host it?',
-                    value='Yes! Everything is available in the GitHub repository.\nMore info on the project\'s README page (See Links below).',
-                    inline=False)
+
+        # Generate data from botinfo
+        e.title = self.about_data["title"]
+        e.description = self.about_data["description"]
+
+        for field in self.about_data["fields"]:
+            e.add_field(name=field["name"], value=field["value"], inline=field["inline"])
+
+        fmt_links = [md.hl(k, v) for k, v in self.about_data["links"].items()]
+
         e.add_field(name='Links',
-                    value=md.bq(f'{md.hl("GitHub", "https://github.com/GaMeNu/HFCNotificator")}\n'
-                                f'{md.hl("Public Bot Invite Link", "https://discord.com/api/oauth2/authorize?client_id=1160344131067977738&permissions=0&scope=applications.commands%20bot")}\n'
-                                f'{md.hl("Public Bot Profile (for DMs)", "https://discord.com/users/1160344131067977738")}\n'
-                                f'{md.hl("Support Server", "https://discord.gg/jVJpAU84bT")}'
-                                f'{md.hl("Official HFC Website", "https://www.oref.org.il/")}\n'),
+                    value=md.bq("\n".join(fmt_links)),
                     inline=True)
 
         e.add_field(name='Created by', value=md.bq('GaMeNu (@gamenu)\n'

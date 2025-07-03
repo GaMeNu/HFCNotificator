@@ -17,8 +17,7 @@ from log_utils import loggers
 from botinfo import botinfo
 from db_access import *
 from utils.markdown import md
-
-from src.botinfo import dir_utils, get_botinfo_data
+from botinfo import dir_utils, get_botinfo_data
 
 load_dotenv()
 AUTHOR_ID = int(os.getenv('AUTHOR_ID'))
